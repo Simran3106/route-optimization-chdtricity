@@ -1,568 +1,568 @@
-stop_id,stop_name,latitude,longitude,url
-S001,10/16  ART GALLERY 52 buses,30.74824,76.78451,https://whereismyctu.com/stop/10-16-art-gallery
-S002,12/11 (Rally Chowk) 7 buses,30.68036,76.8523,https://whereismyctu.com/stop/12-11-rally-chowk
-S003,16/10  ROSE GARDEN 34 buses,30.74819,76.78425,https://whereismyctu.com/stop/16-10-rose-garden
-S004,3 BRD (Base Repair Depot) 1 buses,30.68861,76.78544,https://whereismyctu.com/stop/3-brd-base-repair-depot
-S005,39 Grain Market 2 buses,30.74417,76.72341,https://whereismyctu.com/stop/39-grain-market
-S006,48 Motor Market/Jagatpura- 3 buses,30.68565,76.76065,https://whereismyctu.com/stop/48-motor-market-jagatpura
-S007,Aroma 42 buses,30.7306,76.77496,https://whereismyctu.com/stop/aroma
-S008,Attawa Chowk towards 43 23 buses,30.7252,76.75063,https://whereismyctu.com/stop/attawa-chowk-towards-43
-S009,Attawa Chowk towards Kissan Bhawan 23 buses,30.72648,76.75259,https://whereismyctu.com/stop/attawa-chowk-towards-kissan-bhawan
-S010,Attawa/Sector 36/42 1 buses,30.73072,76.74798,https://whereismyctu.com/stop/attawa-sector-36-42
-S011,Attawa/Sector 42/36 1 buses,30.72978,76.7487,https://whereismyctu.com/stop/attawa-sector-42-36
-S012,BACK SIDE POLICE LINE Sector 26 3 buses,30.72707,76.81359,https://whereismyctu.com/stop/back-side-police-line-sector-26
-S013,Badi Karoran 2 buses,30.78361,76.80981,https://whereismyctu.com/stop/badi-karoran
-S014,Balongi 10 buses,30.73351,76.6954,https://whereismyctu.com/stop/balongi
-S015,Baltana 9 buses,30.66808,76.82636,https://whereismyctu.com/stop/baltana
-S016,Bansawali Chungi 8 buses,30.74468,76.65295,https://whereismyctu.com/stop/bansawali-chungi
-S017,Bassi Light Point(U.T. Barrier) 2 buses,30.72173,76.7305,https://whereismyctu.com/stop/bassi-light-pointu-t-barrier
-S018,Behlana Old Airport 2 buses,30.67522,76.79857,https://whereismyctu.com/stop/behlana-old-airport
-S019,Bella Homes 1 buses,30.60208,76.84867,https://whereismyctu.com/stop/bella-homes
-S020,Bella Homes 4 buses,30.60208,76.84867,https://whereismyctu.com/stop/bella-homes
-S021,Bella Vista 11 buses,30.70076,76.86433,https://whereismyctu.com/stop/bella-vista
-S022,Bhabat 4 buses,30.65476,76.8037,https://whereismyctu.com/stop/bhabat
-S023,Bhago Majra 2 buses,30.67326,76.67115,https://whereismyctu.com/stop/bhago-majra
-S024,Bhankarpur (Down) 8 buses,30.60672,76.83736,https://whereismyctu.com/stop/bhankarpur-down
-S025,Bhankarpur (Up) 10 buses,30.6066,76.83722,https://whereismyctu.com/stop/bhankarpur-up
-S026,Bird Park 2 buses,30.74727,76.80786,https://whereismyctu.com/stop/bird-park
-S027,Block 8 buses,30.83393,76.67339,https://whereismyctu.com/stop/block
-S028,Boothgarh 8 buses,30.83381,76.68469,https://whereismyctu.com/stop/boothgarh
-S029,Brodhi 2 buses,30.83367,76.63524,https://whereismyctu.com/stop/brodhi
-S030,CTU Depot 2 1 buses,30.71025,76.81256,https://whereismyctu.com/stop/ctu-depot-2
-S031,CTU Workshop (UP) 3 buses,30.71099,76.8117,https://whereismyctu.com/stop/ctu-workshop-up
-S032,CTU Workshop 76 buses,30.71101,76.81358,https://whereismyctu.com/stop/ctu-workshop
-S033,CTU Workshop towards railway station 1 buses,30.70967,76.8158,https://whereismyctu.com/stop/ctu-workshop-towards-railway-station
-S034,CVRM DAV School 1 buses,30.59567,76.84712,https://whereismyctu.com/stop/cvrm-dav-school
-S035,CVRM DAV School 4 buses,30.59567,76.84712,https://whereismyctu.com/stop/cvrm-dav-school
-S036,Cantonment 2 buses,30.72137,76.87465,https://whereismyctu.com/stop/cantonment
-S037,Chandpur 2 buses,30.83386,76.65049,https://whereismyctu.com/stop/chandpur
-S038,Chappar Chiri 5 buses,30.70927,76.65721,https://whereismyctu.com/stop/chappar-chiri
-S039,Chatt Village 3 buses,30.6138,76.79018,https://whereismyctu.com/stop/chatt-village
-S040,Chawala Hospital Chowk (Down) 4 buses,30.70843,76.7239,https://whereismyctu.com/stop/chawala-hospital-chowk-down
-S041,Chhattbir ZOO 3 buses,30.60785,76.79447,https://whereismyctu.com/stop/chhattbir-zoo
-S042,Colony No. 4 24 buses,30.70052,76.80334,https://whereismyctu.com/stop/colony-no-4
-S043,Command Hospital (Down) 6 buses,30.71087,76.85463,https://whereismyctu.com/stop/command-hospital-down
-S044,Command Hospital (Up) 9 buses,30.71071,76.85432,https://whereismyctu.com/stop/command-hospital-up
-S045,DAV Model School Sec-7 8 buses,30.73608,76.80664,https://whereismyctu.com/stop/dav-model-school-sec-7
-S046,Daddu Majra Colony 13 buses,30.75456,76.74626,https://whereismyctu.com/stop/daddu-majra-colony
-S047,Dadu Majra Colony 2 buses,30.75402,76.73659,https://whereismyctu.com/stop/dadu-majra-colony
-S048,Dadu Majra Village 7 buses,30.75939,76.73487,https://whereismyctu.com/stop/dadu-majra-village
-S049,Daffarpur 2 buses,30.64311,76.8823,https://whereismyctu.com/stop/daffarpur
-S050,Daun (Down) 4 buses,30.73797,76.68208,https://whereismyctu.com/stop/daun-down
-S051,Daun (Up) 6 buses,30.73823,76.68223,https://whereismyctu.com/stop/daun-up
-S052,Dayalpura 3 buses,30.63941,76.78723,https://whereismyctu.com/stop/dayalpura
-S053,Depot 3 Workshop 20 buses,30.75378,76.74884,https://whereismyctu.com/stop/depot-3-workshop
-S054,Dera Bassi 20 buses,30.58449,76.84405,https://whereismyctu.com/stop/dera-bassi
-S055,Derri 2 buses,30.62083,76.69161,https://whereismyctu.com/stop/derri
-S056,Desu Majra 1 buses,30.74144,76.6712,https://whereismyctu.com/stop/desu-majra
-S057,Desumajra/Nijjar chowk 7 buses,30.74258,76.66578,https://whereismyctu.com/stop/desumajra-nijjar-chowk
-S058,Devilal chowk Panchkula 16 buses,30.68331,76.86726,https://whereismyctu.com/stop/devilal-chowk-panchkula
-S059,Dhakoli Border 10 buses,30.65806,76.84479,https://whereismyctu.com/stop/dhakoli-border
-S060,Dhanas (Down) 6 buses,30.76946,76.75026,https://whereismyctu.com/stop/dhanas-down
-S061,Dhanas (Up) 9 buses,30.76975,76.74999,https://whereismyctu.com/stop/dhanas-up
-S062,Dhanas Colony 7 buses,30.7749,76.7527,https://whereismyctu.com/stop/dhanas-colony
-S063,Dhanas near Bridge 5 buses,30.76078,76.74459,https://whereismyctu.com/stop/dhanas-near-bridge
-S064,Dolphin Chowk 2 buses,30.72945,76.8521,https://whereismyctu.com/stop/dolphin-chowk
-S065,Dosarna 2 buses,30.83197,76.60648,https://whereismyctu.com/stop/dosarna
-S066,ECO City New Chandigarh 12 buses,30.81679,76.73211,https://whereismyctu.com/stop/eco-city-new-chandigarh
-S067,Eco City-2 Block C Takipur 3 buses,30.82979,76.71605,https://whereismyctu.com/stop/eco-city-2-block-c-takipur
-S068,Eco City-2 Block D 3 buses,30.83555,76.71589,https://whereismyctu.com/stop/eco-city-2-block-d
-S069,Elante Mall (Down) 8 buses,30.70589,76.79668,https://whereismyctu.com/stop/elante-mall-down
-S070,Elante Mall (Up) 7 buses,30.70515,76.79725,https://whereismyctu.com/stop/elante-mall-up
-S071,Faidan Village 12 buses,30.68844,76.76542,https://whereismyctu.com/stop/faidan-village
-S072,Fatehgarh 2 buses,30.8319,76.61251,https://whereismyctu.com/stop/fatehgarh
-S073,Ferozpur (Down) 4 buses,30.8148,76.73855,https://whereismyctu.com/stop/ferozpur-down
-S074,Ferozpur (Up) 2 buses,30.81832,76.73821,https://whereismyctu.com/stop/ferozpur-up
-S075,Fire Brigade Phase-2 Towards Ramdarbar 4 buses,30.69655,76.78643,https://whereismyctu.com/stop/fire-brigade-phase-2-towards-ramdarbar
-S076,Fire Brigade Phase-2 Towards Sector 31 3 buses,30.69668,76.78634,https://whereismyctu.com/stop/fire-brigade-phase-2-towards-sector-31
-S077,Focal Point/Silver City 1 buses,30.60775,76.85007,https://whereismyctu.com/stop/focal-point-silver-city
-S078,Focal Point/Silver City 4 buses,30.60775,76.85007,https://whereismyctu.com/stop/focal-point-silver-city
-S079,Fortis Hospital 4 buses,30.69383,76.73081,https://whereismyctu.com/stop/fortis-hospital
-S080,Fortis-PSEB (Down) 12 buses,30.69608,76.73193,https://whereismyctu.com/stop/fortis-pseb-down
-S081,Furniture Chowk(UT Border) 4 buses,30.72729,76.73384,https://whereismyctu.com/stop/furniture-chowkut-border
-S082,G.M.C.H. 32 4 buses,30.70859,76.78304,https://whereismyctu.com/stop/g-m-c-h-32
-S083,Golden Sand Apartment Dhakoli 6 buses,30.64677,76.84321,https://whereismyctu.com/stop/golden-sand-apartment-dhakoli
-S084,Golf Range 2 buses,30.73696,76.81093,https://whereismyctu.com/stop/golf-range
-S085,Hallo Majra (Down) 26 buses,30.69408,76.80027,https://whereismyctu.com/stop/hallo-majra-down
-S086,Hallo Majra (UP) 27 buses,30.69384,76.79988,https://whereismyctu.com/stop/hallo-majra-up
-S087,High Court 15 buses,30.7578,76.80278,https://whereismyctu.com/stop/high-court
-S088,Homi Bhabha Hospital 5 buses,30.81583,76.7382,https://whereismyctu.com/stop/homi-bhabha-hospital
-S089,Hoshiarpur 11 buses,30.83573,76.72421,https://whereismyctu.com/stop/hoshiarpur
-S090,Housing Board Chowk 18 buses,30.70811,76.83675,https://whereismyctu.com/stop/housing-board-chowk
-S091,Housing Board Chowk Towards ISBT 43 37 buses,30.7076,76.83548,https://whereismyctu.com/stop/housing-board-chowk-towards-isbt-43
-S092,Housing Board Chowk Towards Panchkula 28 buses,30.70901,76.83895,https://whereismyctu.com/stop/housing-board-chowk-towards-panchkula
-S093,Housing Board Towards 9/16 5 buses,30.70717,76.83773,https://whereismyctu.com/stop/housing-board-towards-9-16
-S094,IRB Camp 2 buses,30.79185,76.76772,https://whereismyctu.com/stop/irb-camp
-S095,ISBT 17 151 buses,30.73637,76.77837,https://whereismyctu.com/stop/isbt-17
-S096,ISBT 43 121 buses,30.71709,76.74341,https://whereismyctu.com/stop/isbt-43
-S097,ISBT Mohali 10 buses,30.73306,76.70577,https://whereismyctu.com/stop/isbt-mohali
-S098,IT Park (Down) 1 buses,30.73026,76.84546,https://whereismyctu.com/stop/it-park-down
-S099,IT Park Up 5 buses,30.72975,76.84327,https://whereismyctu.com/stop/it-park-up
-S100,IVY Hospital (Down) 1 buses,30.70736,76.70798,https://whereismyctu.com/stop/ivy-hospital-down
-S101,IVY Hospital (Up) 1 buses,30.70698,76.70698,https://whereismyctu.com/stop/ivy-hospital-up
-S102,Indira Colony Down 8 buses,30.72022,76.83785,https://whereismyctu.com/stop/indira-colony-down
-S103,Indira Colony Up 7 buses,30.7202,76.84075,https://whereismyctu.com/stop/indira-colony-up
-S104,Industrial Area Phase -1/ Sector 28 20 buses,30.71124,76.80204,https://whereismyctu.com/stop/industrial-area-phase-1-sector-28
-S105,Industrial Area Phase 2 4 buses,30.69591,76.78643,https://whereismyctu.com/stop/industrial-area-phase-2
-S106,Industrial Area Phase 2 in front Tata Motors 1 buses,30.69905,76.78505,https://whereismyctu.com/stop/industrial-area-phase-2-in-front-tata-motors
-S107,Industrial Area Phase 2 near PRTC 5 buses,30.7032,76.78892,https://whereismyctu.com/stop/industrial-area-phase-2-near-prtc
-S108,Industrial Area Phase 2 near passport office 10 buses,30.69934,76.78482,https://whereismyctu.com/stop/industrial-area-phase-2-near-passport-office
-S109,Industrial Area Phase 2/Phase 1 16 buses,30.7017,76.79192,https://whereismyctu.com/stop/industrial-area-phase-2-phase-1
-S110,Industrial Area Phase-1 33 buses,30.71393,76.8087,https://whereismyctu.com/stop/industrial-area-phase-1
-S111,Jagatpura/ 48 Motor Market 8 buses,30.68547,76.76079,https://whereismyctu.com/stop/jagatpura-48-motor-market
-S112,Jal Vayu Tower 2 buses,30.75362,76.6741,https://whereismyctu.com/stop/jal-vayu-tower
-S113,Jayanti Majri 3 buses,30.82328,76.77632,https://whereismyctu.com/stop/jayanti-majri
-S114,Jhande Majra 2 buses,30.85537,76.65196,https://whereismyctu.com/stop/jhande-majra
-S115,Jhurheri 2 buses,30.66807,76.77939,https://whereismyctu.com/stop/jhurheri
-S116,K.V. School- 29 1 buses,30.71134,76.79619,https://whereismyctu.com/stop/k-v-school-29
-S117,K.V. School-31 1 buses,30.70432,76.77958,https://whereismyctu.com/stop/k-v-school-31
-S118,KFC 10 buses,30.74044,76.6747,https://whereismyctu.com/stop/kfc
-S119,Kaali Baari Mandir towards 3BRD 9 buses,30.69551,76.77887,https://whereismyctu.com/stop/kaali-baari-mandir-towards-3brd
-S120,Kaali Baari Mandir towards 47 6 buses,30.69511,76.77899,https://whereismyctu.com/stop/kaali-baari-mandir-towards-47
-S121,Kadi Majra 2 buses,30.83342,76.66145,https://whereismyctu.com/stop/kadi-majra
-S122,Kaimbwala 1 5 buses,30.75641,76.82911,https://whereismyctu.com/stop/kaimbwala-1
-S123,Kaimbwala 2 4 buses,30.75668,76.82146,https://whereismyctu.com/stop/kaimbwala-2
-S124,Kakrali 2 buses,30.63736,76.87694,https://whereismyctu.com/stop/kakrali
-S125,Kalagram Down 53 buses,30.7097,76.82869,https://whereismyctu.com/stop/kalagram-down
-S126,Kalagram Up 35 buses,30.70827,76.83086,https://whereismyctu.com/stop/kalagram-up
-S127,Kanoda 2 buses,30.82949,76.60106,https://whereismyctu.com/stop/kanoda
-S128,Kartarpur 8 buses,30.83697,76.69904,https://whereismyctu.com/stop/kartarpur
-S129,Kharar 13 buses,30.75163,76.63874,https://whereismyctu.com/stop/kharar
-S130,Khera 4 buses,30.85259,76.66089,https://whereismyctu.com/stop/khera
-S131,Khizrabad 6 buses,30.87541,76.65475,https://whereismyctu.com/stop/khizrabad
-S132,Khuda Alisher 6 buses,30.77312,76.80892,https://whereismyctu.com/stop/khuda-alisher
-S133,Khuda Lahora (Down) 17 buses,30.77572,76.7698,https://whereismyctu.com/stop/khuda-lahora-down
-S134,Khuda Lahora (Up) 13 buses,30.77592,76.7699,https://whereismyctu.com/stop/khuda-lahora-up
-S135,Khuda Lahora Bridge 5 buses,30.77195,76.76956,https://whereismyctu.com/stop/khuda-lahora-bridge
-S136,Khuda Lahora Mod (Govt. High School-Sec-12) 2 buses,30.77095,76.77146,https://whereismyctu.com/stop/khuda-lahora-mod-govt-high-school-sec-12
-S137,Kila Chungi 8 buses,30.74726,76.64819,https://whereismyctu.com/stop/kila-chungi
-S138,Kishan bhavan 3 buses,30.73294,76.76302,https://whereismyctu.com/stop/kishan-bhavan
-S139,Kishangarh Down 3 buses,30.73093,76.83029,https://whereismyctu.com/stop/kishangarh-down
-S140,Kishangarh Up 3 buses,30.73101,76.83227,https://whereismyctu.com/stop/kishangarh-up
-S141,Kubaheri 2 buses,30.87476,76.6766,https://whereismyctu.com/stop/kubaheri
-S142,Kurali 2 buses,30.83061,76.58182,https://whereismyctu.com/stop/kurali
-S143,Lake Chowk 2 buses,30.7408,76.80771,https://whereismyctu.com/stop/lake-chowk
-S144,Lakhnaur (DC Office Mohali) 11 buses,30.69387,76.69042,https://whereismyctu.com/stop/lakhnaur-dc-office-mohali
-S145,Lakhnaur 7 buses,30.69476,76.68441,https://whereismyctu.com/stop/lakhnaur
-S146,Landran (Down) 3 buses,30.69139,76.66531,https://whereismyctu.com/stop/landran-down
-S147,Landran (Up) 8 buses,30.69061,76.66342,https://whereismyctu.com/stop/landran-up
-S148,Lohgarh 7 buses,30.64437,76.80773,https://whereismyctu.com/stop/lohgarh
-S149,MLA Flats (Down) 3 buses,30.75522,76.79943,https://whereismyctu.com/stop/mla-flats-down
-S150,MLA Flats (Up) 10 buses,30.7547,76.79857,https://whereismyctu.com/stop/mla-flats-up
-S151,Madanpur (Down) 1 buses,30.7171,76.72338,https://whereismyctu.com/stop/madanpur-down
-S152,Madanpur (Up) 1 buses,30.71809,76.72481,https://whereismyctu.com/stop/madanpur-up
-S153,Madanpur 32 (Down) 3 buses,30.66552,76.89038,https://whereismyctu.com/stop/madanpur-32-down
-S154,Madanpur 32 (Up) 4 buses,30.66554,76.88979,https://whereismyctu.com/stop/madanpur-32-up
-S155,Majra/Siswan T/P 11 buses,30.84587,76.72057,https://whereismyctu.com/stop/majra-siswan-t-p
-S156,Majri Chowk 18 buses,30.69965,76.87275,https://whereismyctu.com/stop/majri-chowk
-S157,Maloya 15 buses,30.7522,76.7176,https://whereismyctu.com/stop/maloya
-S158,Maloya Mod/Anaj Mandi Towards Maloya 10 buses,30.74662,76.72703,https://whereismyctu.com/stop/maloya-mod-anaj-mandi-towards-maloya
-S159,Maloya Mod/Anaj Mandi Towards Water Works 6 buses,30.74701,76.7271,https://whereismyctu.com/stop/maloya-mod-anaj-mandi-towards-water-works
-S160,ManakPur/Sangatpura 2 buses,30.84883,76.68416,https://whereismyctu.com/stop/manakpur-sangatpura
-S161,Manauli 1 buses,30.64243,76.7236,https://whereismyctu.com/stop/manauli
-S162,Mani Majra 50 buses,30.71343,76.84331,https://whereismyctu.com/stop/mani-majra
-S163,Mani Majra Fun Republic 10 buses,30.71211,76.84389,https://whereismyctu.com/stop/mani-majra-fun-republic
-S164,Mani Majra Fun Republic(UP) 6 buses,30.71421,76.84435,https://whereismyctu.com/stop/mani-majra-fun-republicup
-S165,Mani Majra Town 11 buses,30.71971,76.82995,https://whereismyctu.com/stop/mani-majra-town
-S166,Mansa Devi Complex 2 buses,30.72067,76.85274,https://whereismyctu.com/stop/mansa-devi-complex
-S167,Mata Mansa Devi 24 buses,30.72283,76.8582,https://whereismyctu.com/stop/mata-mansa-devi
-S168,Mauli Jagran 9 buses,30.68816,76.82378,https://whereismyctu.com/stop/mauli-jagran
-S169,Mauli Nabi 1 buses,30.67316,76.72634,https://whereismyctu.com/stop/mauli-nabi
-S170,MedCity Light 5 buses,30.8139,76.73884,https://whereismyctu.com/stop/medcity-light
-S171,Milk Colony Towards Barrier 5 buses,30.76472,76.74688,https://whereismyctu.com/stop/milk-colony-towards-barrier
-S172,Milk Colony Towards Depot 3 5 buses,30.76521,76.74723,https://whereismyctu.com/stop/milk-colony-towards-depot-3
-S173,Mini Secretariat (Down) 5 buses,30.75188,76.79404,https://whereismyctu.com/stop/mini-secretariat-down
-S174,Mini Secretariat (Up) 6 buses,30.75087,76.79264,https://whereismyctu.com/stop/mini-secretariat-up
-S175,Modern Complex 12 buses,30.71616,76.83102,https://whereismyctu.com/stop/modern-complex
-S176,Moginanad/Sector 25 (Down) 3 buses,30.67221,76.89018,https://whereismyctu.com/stop/moginanad-sector-25-down
-S177,Moginanad/Sector 25 (Up) 4 buses,30.67188,76.88983,https://whereismyctu.com/stop/moginanad-sector-25-up
-S178,Mohali Bus Stand 3 buses,30.69711,76.72695,https://whereismyctu.com/stop/mohali-bus-stand
-S179,Morni T-Point 7 buses,30.68935,76.89032,https://whereismyctu.com/stop/morni-t-point
-S180,Mubarkpur 7 buses,30.61309,76.85136,https://whereismyctu.com/stop/mubarkpur
-S181,Mullanpur 23 buses,30.80163,76.74338,https://whereismyctu.com/stop/mullanpur
-S182,Mundi Kharar/Gillco 8 buses,30.74345,76.65839,https://whereismyctu.com/stop/mundi-kharar-gillco
-S183,Nabha Sahib (Down) 3 buses,30.63912,76.80353,https://whereismyctu.com/stop/nabha-sahib-down
-S184,Nabha Sahib 4 buses,30.64164,76.80126,https://whereismyctu.com/stop/nabha-sahib
-S185,Nabha Village 3 buses,30.64022,76.80436,https://whereismyctu.com/stop/nabha-village
-S186,Nada Sahib 18 buses,30.69501,76.88289,https://whereismyctu.com/stop/nada-sahib
-S187,Naya Gaon 6 buses,30.76927,76.79225,https://whereismyctu.com/stop/naya-gaon
-S188,Naya gaon Gate-1 2 buses,30.77473,76.78038,https://whereismyctu.com/stop/naya-gaon-gate-1
-S189,Naya gaon Gate-2 2 buses,30.77803,76.78184,https://whereismyctu.com/stop/naya-gaon-gate-2
-S190,Naya gaon Gate-3 2 buses,30.78177,76.78649,https://whereismyctu.com/stop/naya-gaon-gate-3
-S191,New Airport 2 buses,30.66836,76.78508,https://whereismyctu.com/stop/new-airport
-S192,New Airport Chowk- Mohali (Up) 2 buses,30.64401,76.75549,https://whereismyctu.com/stop/new-airport-chowk-mohali-up
-S193,New Maloya Colony 16 buses,30.75985,76.71566,https://whereismyctu.com/stop/new-maloya-colony
-S194,New OPD (Down) 46 buses,30.76213,76.78179,https://whereismyctu.com/stop/new-opd-down
-S195,New OPD (Up) 34 buses,30.76182,76.78159,https://whereismyctu.com/stop/new-opd-up
-S196,P.S.E.B. Sector 62 3 buses,30.69587,76.73401,https://whereismyctu.com/stop/p-s-e-b-sector-62
-S197,PGI 105 buses,30.76222,76.77324,https://whereismyctu.com/stop/pgi
-S198,PGI(UP) 5 buses,30.75947,76.77541,https://whereismyctu.com/stop/pgiup
-S199,Palsora (Chandigarh) 2 buses,30.73021,76.72744,https://whereismyctu.com/stop/palsora-chandigarh
-S200,"Parchh, Punjab 3 buses",30.79995,76.78423,https://whereismyctu.com/stop/parchh-punjab
-S201,Paroul (Down) 3 buses,30.82784,76.73149,https://whereismyctu.com/stop/paroul-down
-S202,Paroul (Up) 8 buses,30.82884,76.7366,https://whereismyctu.com/stop/paroul-up
-S203,Paultry Farm 4 buses,30.69604,76.8001,https://whereismyctu.com/stop/paultry-farm
-S204,Phase 6 - 35 6 buses,30.73747,76.71565,https://whereismyctu.com/stop/phase-6-35
-S205,Phase 8/Amb sahib 1 buses,30.69889,76.7309,https://whereismyctu.com/stop/phase-8-amb-sahib
-S206,Phase-11 (Mohali) 2 buses,30.67652,76.74664,https://whereismyctu.com/stop/phase-11-mohali
-S207,Phase-2 Bassi Theatre 4 buses,30.72426,76.72778,https://whereismyctu.com/stop/phase-2-bassi-theatre
-S208,Phase-3/5 (Down) 1 buses,30.71442,76.71924,https://whereismyctu.com/stop/phase-3-5-down
-S209,Phase-3/5 (Up) 1 buses,30.71401,76.7181,https://whereismyctu.com/stop/phase-3-5-up
-S210,Phase-6 (U.T Border) A 2 buses,30.7382,76.71463,https://whereismyctu.com/stop/phase-6-u-t-border-a
-S211,Phase-6 (U.T Border) C 4 buses,30.73847,76.71495,https://whereismyctu.com/stop/phase-6-u-t-border-c
-S212,Phase-7 (Down) 4 buses,30.70394,76.72697,https://whereismyctu.com/stop/phase-7-down
-S213,Platinum Homes/Sanauli 8 buses,30.63673,76.8461,https://whereismyctu.com/stop/platinum-homes-sanauli
-S214,Police Line Sec-25 7 buses,30.66919,76.89012,https://whereismyctu.com/stop/police-line-sec-25
-S215,Punjab Civil Secratariat 7 buses,30.76268,76.79969,https://whereismyctu.com/stop/punjab-civil-secratariat
-S216,Punjab Engineering College (PEC) 18 buses,30.7639,76.78535,https://whereismyctu.com/stop/punjab-engineering-college-pec
-S217,Railway Crossing Towards 28 Grain Market 15 buses,30.7125,76.8205,https://whereismyctu.com/stop/railway-crossing-towards-28-grain-market
-S218,Railway Crossing Towards Manimajra 46 buses,30.7124,76.82295,https://whereismyctu.com/stop/railway-crossing-towards-manimajra
-S219,Railway Crossing towards Railway Station 35 buses,30.71185,76.82229,https://whereismyctu.com/stop/railway-crossing-towards-railway-station
-S220,Railway Station (Chandigarh) 73 buses,30.70261,76.81909,https://whereismyctu.com/stop/railway-station-chandigarh
-S221,Railway Station (Mohali) 8 buses,30.66655,76.73947,https://whereismyctu.com/stop/railway-station-mohali
-S222,Raipur Kalan (U.T. Border) 11 buses,30.6846,76.82701,https://whereismyctu.com/stop/raipur-kalan-u-t-border
-S223,Raipur Khurd 35 buses,30.67808,76.80831,https://whereismyctu.com/stop/raipur-khurd
-S224,Raipur Khurd Towards Zirakpur 4 buses,30.67581,76.80971,https://whereismyctu.com/stop/raipur-khurd-towards-zirakpur
-S225,Ram Darbar 18 buses,30.69344,76.78826,https://whereismyctu.com/stop/ram-darbar
-S226,Ramgarh 13 buses,30.64676,76.88557,https://whereismyctu.com/stop/ramgarh
-S227,Rock garden Towards Sectt. 3 buses,30.75194,76.80387,https://whereismyctu.com/stop/rock-garden-towards-sectt
-S228,Rock garden towards lake 3 buses,30.75133,76.8044,https://whereismyctu.com/stop/rock-garden-towards-lake
-S229,SECTOR 46/47 4 buses,30.69882,76.76729,https://whereismyctu.com/stop/sector-46-47
-S230,SECTOR 47/46 4 buses,30.69908,76.76801,https://whereismyctu.com/stop/sector-47-46
-S231,Saketri 5 buses,30.74624,76.84447,https://whereismyctu.com/stop/saketri
-S232,Saneta 2 buses,30.64181,76.685,https://whereismyctu.com/stop/saneta
-S233,Santemajra 5 buses,30.72083,76.65271,https://whereismyctu.com/stop/santemajra
-S234,Sarangpur Barrier (Down) 16 buses,30.78638,76.75563,https://whereismyctu.com/stop/sarangpur-barrier-down
-S235,Sarangpur Barrier (Up) 22 buses,30.78598,76.7566,https://whereismyctu.com/stop/sarangpur-barrier-up
-S236,Sarangpur School (Down) 12 buses,30.78267,76.76034,https://whereismyctu.com/stop/sarangpur-school-down
-S237,Sarangpur School (UP) 11 buses,30.78333,76.75953,https://whereismyctu.com/stop/sarangpur-school-up
-S238,Sarangpur Village (Down) 6 buses,30.7802,76.75435,https://whereismyctu.com/stop/sarangpur-village-down
-S239,Sarangpur Village (UP) 9 buses,30.77954,76.75416,https://whereismyctu.com/stop/sarangpur-village-up
-S240,Sec-39/Water Works--13 A Towards ISBT 43 6 buses,30.74698,76.72843,https://whereismyctu.com/stop/sec-39-water-works-13-a-towards-isbt-43
-S241,Sec-39/Water Works--13 C 8 buses,30.7472,76.72812,https://whereismyctu.com/stop/sec-39-water-works-13-c
-S242,Sector 10/09 near Matka Chowk 4 buses,30.74782,76.7874,https://whereismyctu.com/stop/sector-10-09-near-matka-chowk
-S243,Sector 10/11 1 buses,30.75897,76.7902,https://whereismyctu.com/stop/sector-10-11
-S244,Sector 10/11 Panchkula 8 buses,30.68762,76.84974,https://whereismyctu.com/stop/sector-10-11-panchkula
-S245,Sector 10/15 Panchkula 14 buses,30.68781,76.84431,https://whereismyctu.com/stop/sector-10-15-panchkula
-S246,Sector 10/16 General Hospital 61 buses,30.75156,76.78185,https://whereismyctu.com/stop/sector-10-16-general-hospital
-S247,Sector 10D/11 64 buses,30.75603,76.78551,https://whereismyctu.com/stop/sector-10d-11
-S248,Sector 11/10 6 buses,30.75825,76.78906,https://whereismyctu.com/stop/sector-11-10
-S249,Sector 11/10 Panchkula 2 buses,30.68787,76.85056,https://whereismyctu.com/stop/sector-11-10-panchkula
-S250,Sector 11/12 Rally Chowk Panchkula 12 buses,30.6805,76.85212,https://whereismyctu.com/stop/sector-11-12-rally-chowk-panchkula
-S251,Sector 11/15 15 buses,30.75663,76.77767,https://whereismyctu.com/stop/sector-11-15
-S252,Sector 11/4 3 buses,30.68784,76.85546,https://whereismyctu.com/stop/sector-11-4
-S253,Sector 11A/2 PEC 30 buses,30.76463,76.78688,https://whereismyctu.com/stop/sector-11a-2-pec
-S254,Sector 11B/10 70 buses,30.7575,76.78785,https://whereismyctu.com/stop/sector-11b-10
-S255,Sector 11C/10 73 buses,30.75364,76.78169,https://whereismyctu.com/stop/sector-11c-10
-S256,Sector 12 Panchkula (Down) 1 buses,30.68343,76.85539,https://whereismyctu.com/stop/sector-12-panchkula-down
-S257,Sector 12/2 1 buses,30.76548,76.78815,https://whereismyctu.com/stop/sector-12-2
-S258,Sector 12/4 Maheshpur 4 buses,30.68438,76.86053,https://whereismyctu.com/stop/sector-12-4-maheshpur
-S259,Sector 123 (Mohali) 2 buses,30.76475,76.6681,https://whereismyctu.com/stop/sector-123-mohali
-S260,Sector 125 (Mohali) 2 buses,30.75667,76.66944,https://whereismyctu.com/stop/sector-125-mohali
-S261,Sector 14/15 7 buses,30.75477,76.76917,https://whereismyctu.com/stop/sector-14-15
-S262,Sector 15 market 3 buses,30.75199,76.77281,https://whereismyctu.com/stop/sector-15-market
-S263,Sector 15/10 Panchkula 16 buses,30.68774,76.84412,https://whereismyctu.com/stop/sector-15-10-panchkula
-S264,Sector 15/11 11 buses,30.75437,76.77931,https://whereismyctu.com/stop/sector-15-11
-S265,Sector 15/14 3 buses,30.75578,76.7709,https://whereismyctu.com/stop/sector-15-14
-S266,Sector 15/24 3 buses,30.74999,76.76614,https://whereismyctu.com/stop/sector-15-24
-S267,Sector 16 Market (Down) 2 buses,30.74666,76.7768,https://whereismyctu.com/stop/sector-16-market-down
-S268,Sector 16 Market (Up) 1 buses,30.74698,76.77654,https://whereismyctu.com/stop/sector-16-market-up
-S269,Sector 16/10 General Hospital 40 buses,30.75143,76.7816,https://whereismyctu.com/stop/sector-16-10-general-hospital
-S270,Sector 16/17 39 buses,30.74208,76.77813,https://whereismyctu.com/stop/sector-16-17
-S271,Sector 16/17 near Matka Chowk 30 buses,30.7456,76.78395,https://whereismyctu.com/stop/sector-16-17-near-matka-chowk
-S272,Sector 16/23 3 buses,30.7441,76.77085,https://whereismyctu.com/stop/sector-16-23
-S273,Sector 16/9 Panchkula 16 buses,30.69384,76.84093,https://whereismyctu.com/stop/sector-16-9-panchkula
-S274,Sector 17/16 71 buses,30.74193,76.77829,https://whereismyctu.com/stop/sector-17-16
-S275,Sector 17/16 near Matka Chowk 59 buses,30.7458,76.78462,https://whereismyctu.com/stop/sector-17-16-near-matka-chowk
-S276,Sector 17/18 (Govt. Press) 13 buses,30.73926,76.78872,https://whereismyctu.com/stop/sector-17-18-govt-press
-S277,Sector 17/18 27 buses,30.73432,76.78109,https://whereismyctu.com/stop/sector-17-18
-S278,Sector 17/9 K.C (Down) 2 buses,30.74311,76.78887,https://whereismyctu.com/stop/sector-17-9-k-c-down
-S279,Sector 17/9 K.C (Up) 2 buses,30.74179,76.78975,https://whereismyctu.com/stop/sector-17-9-k-c-up
-S280,Sector 18 Market (Down) 13 buses,30.73339,76.78867,https://whereismyctu.com/stop/sector-18-market-down
-S281,Sector 18 Market (Up) 11 buses,30.73388,76.78798,https://whereismyctu.com/stop/sector-18-market-up
-S282,Sector 18/17 (Govt. Press) 6 buses,30.74006,76.79106,https://whereismyctu.com/stop/sector-18-17-govt-press
-S283,Sector 18/17 17 buses,30.73734,76.78611,https://whereismyctu.com/stop/sector-18-17
-S284,Sector 18/21 5 buses,30.73124,76.78176,https://whereismyctu.com/stop/sector-18-21
-S285,Sector 18/8 11 buses,30.73682,76.7941,https://whereismyctu.com/stop/sector-18-8
-S286,Sector 18D/17 1 buses,30.73605,76.78411,https://whereismyctu.com/stop/sector-18d-17
-S287,Sector 19 Market (Down) 11 buses,30.72863,76.79264,https://whereismyctu.com/stop/sector-19-market-down
-S288,Sector 19 Market (Up) 10 buses,30.72736,76.79408,https://whereismyctu.com/stop/sector-19-market-up
-S289,Sector 19/18 2 buses,30.72802,76.7857,https://whereismyctu.com/stop/sector-19-18
-S290,Sector 19/20 5 buses,30.7252,76.78726,https://whereismyctu.com/stop/sector-19-20
-S291,Sector 19/27 12 buses,30.72508,76.79494,https://whereismyctu.com/stop/sector-19-27
-S292,Sector 19/27A 6 buses,30.72851,76.80038,https://whereismyctu.com/stop/sector-19-27a
-S293,Sector 19/7 11 buses,30.73097,76.79945,https://whereismyctu.com/stop/sector-19-7
-S294,Sector 19C/27 11 buses,30.72247,76.79082,https://whereismyctu.com/stop/sector-19c-27
-S295,Sector 2/11A PEC 34 buses,30.76449,76.78788,https://whereismyctu.com/stop/sector-2-11a-pec
-S296,Sector 2/12 3 buses,30.76535,76.78824,https://whereismyctu.com/stop/sector-2-12
-S297,Sector 20 Market 37 buses,30.72124,76.78159,https://whereismyctu.com/stop/sector-20-market
-S298,Sector 20 Panchkula 10 buses,30.66839,76.85781,https://whereismyctu.com/stop/sector-20-panchkula
-S299,Sector 20/19 7 buses,30.72397,76.78806,https://whereismyctu.com/stop/sector-20-19
-S300,Sector 20/33 10 buses,30.71934,76.77462,https://whereismyctu.com/stop/sector-20-33
-S301,Sector 20B/30A 5 buses,30.71925,76.7856,https://whereismyctu.com/stop/sector-20b-30a
-S302,Sector 20C/30D 5 buses,30.71566,76.77962,https://whereismyctu.com/stop/sector-20c-30d
-S303,Sector 21 Market 37 buses,30.72658,76.77692,https://whereismyctu.com/stop/sector-21-market
-S304,Sector 21 Market Panchkula 10 buses,30.67555,76.86416,https://whereismyctu.com/stop/sector-21-market-panchkula
-S305,Sector 21/18 7 buses,30.72973,76.78282,https://whereismyctu.com/stop/sector-21-18
-S306,Sector 21/22 Aroma 41 buses,30.73074,76.77586,https://whereismyctu.com/stop/sector-21-22-aroma
-S307,Sector 21/34 10 buses,30.72513,76.76961,https://whereismyctu.com/stop/sector-21-34
-S308,Sector 21A/22 67 buses,30.73263,76.77851,https://whereismyctu.com/stop/sector-21a-22
-S309,Sector 22 1 buses,30.73031,76.76692,https://whereismyctu.com/stop/sector-22
-S310,Sector 22/17 67 buses,30.73597,76.7774,https://whereismyctu.com/stop/sector-22-17
-S311,Sector 22/23 34 buses,30.73678,76.76913,https://whereismyctu.com/stop/sector-22-23
-S312,Sector 22/23 Panchkula 6 buses,30.67898,76.8806,https://whereismyctu.com/stop/sector-22-23-panchkula
-S313,Sector 22/35 5 buses,30.73174,76.7639,https://whereismyctu.com/stop/sector-22-35
-S314,Sector 22C(UP/DOWN) 37 buses,30.72735,76.76997,https://whereismyctu.com/stop/sector-22cup-down
-S315,Sector 23 Market 4 buses,30.73799,76.76666,https://whereismyctu.com/stop/sector-23-market
-S316,Sector 23/16 5 buses,30.74353,76.77107,https://whereismyctu.com/stop/sector-23-16
-S317,Sector 23/22 31 buses,30.73563,76.76723,https://whereismyctu.com/stop/sector-23-22
-S318,Sector 23/24 Panchkula 6 buses,30.66843,76.87815,https://whereismyctu.com/stop/sector-23-24-panchkula
-S319,Sector 23/36 1 buses,30.73762,76.7595,https://whereismyctu.com/stop/sector-23-36
-S320,Sector 24 Market 4 buses,30.74595,76.76135,https://whereismyctu.com/stop/sector-24-market
-S321,Sector 24/15 5 buses,30.74929,76.76646,https://whereismyctu.com/stop/sector-24-15
-S322,Sector 24/25 10 buses,30.74837,76.75907,https://whereismyctu.com/stop/sector-24-25
-S323,Sector 24/25 Panchkula 6 buses,30.66694,76.88091,https://whereismyctu.com/stop/sector-24-25-panchkula
-S324,Sector 24/37 2 buses,30.74268,76.75562,https://whereismyctu.com/stop/sector-24-37
-S325,Sector 25 near Dental College 10 buses,30.74631,76.75566,https://whereismyctu.com/stop/sector-25-near-dental-college
-S326,Sector 25/24 10 buses,30.74781,76.75808,https://whereismyctu.com/stop/sector-25-24
-S327,Sector 25/38 Light Point 6 buses,30.74733,76.75227,https://whereismyctu.com/stop/sector-25-38-light-point
-S328,Sector 26 Panchkula 6 buses,30.66151,76.88184,https://whereismyctu.com/stop/sector-26-panchkula
-S329,Sector 26 Polytechnic College Panchkula 6 buses,30.65761,76.88121,https://whereismyctu.com/stop/sector-26-polytechnic-college-panchkula
-S330,Sector 26/27 25 buses,30.72719,76.80326,https://whereismyctu.com/stop/sector-26-27
-S331,Sector 26/27 Outer Panchkula 13 buses,30.65717,76.88791,https://whereismyctu.com/stop/sector-26-27-outer-panchkula
-S332,Sector 26/28 Grain Market 32 buses,30.72252,76.8079,https://whereismyctu.com/stop/sector-26-28-grain-market
-S333,Sector 26/7 6 buses,30.73095,76.80443,https://whereismyctu.com/stop/sector-26-7
-S334,Sector 27 Market (Down) 12 buses,30.72279,76.79879,https://whereismyctu.com/stop/sector-27-market-down
-S335,Sector 27 Market (Up) 14 buses,30.72459,76.79693,https://whereismyctu.com/stop/sector-27-market-up
-S336,Sector 27/19 11 buses,30.725,76.79506,https://whereismyctu.com/stop/sector-27-19
-S337,Sector 27/19C 10 buses,30.7224,76.79089,https://whereismyctu.com/stop/sector-27-19c
-S338,Sector 27/26 19 buses,30.72576,76.80446,https://whereismyctu.com/stop/sector-27-26
-S339,Sector 27/28 3 buses,30.72084,76.80262,https://whereismyctu.com/stop/sector-27-28
-S340,Sector 27/28 Panchkula 6 buses,30.65089,76.88035,https://whereismyctu.com/stop/sector-27-28-panchkula
-S341,Sector 27/30 5 buses,30.71971,76.79228,https://whereismyctu.com/stop/sector-27-30
-S342,Sector 27A/19 6 buses,30.72839,76.80047,https://whereismyctu.com/stop/sector-27a-19
-S343,Sector 28 Market (Down) 8 buses,30.71731,76.8035,https://whereismyctu.com/stop/sector-28-market-down
-S344,Sector 28 Market (Up) 12 buses,30.71577,76.80585,https://whereismyctu.com/stop/sector-28-market-up
-S345,Sector 28 Petrol Pump (Down) 3 buses,30.7152,76.80779,https://whereismyctu.com/stop/sector-28-petrol-pump-down
-S346,Sector 28 Petrol Pump (Up) 3 buses,30.71504,76.80811,https://whereismyctu.com/stop/sector-28-petrol-pump-up
-S347,Sector 28/26 Grain Market 27 buses,30.7224,76.80765,https://whereismyctu.com/stop/sector-28-26-grain-market
-S348,Sector 28/27 4 buses,30.71989,76.80105,https://whereismyctu.com/stop/sector-28-27
-S349,Sector 28/29 5 buses,30.71432,76.79767,https://whereismyctu.com/stop/sector-28-29
-S350,Sector 29 Market (Down) 6 buses,30.71073,76.79178,https://whereismyctu.com/stop/sector-29-market-down
-S351,Sector 29 Market (Up) 4 buses,30.7097,76.79198,https://whereismyctu.com/stop/sector-29-market-up
-S352,Sector 29/ Industrial Area Phase-1 1 buses,30.71049,76.80008,https://whereismyctu.com/stop/sector-29-industrial-area-phase-1
-S353,Sector 29/28 6 buses,30.71311,76.7987,https://whereismyctu.com/stop/sector-29-28
-S354,Sector 29/30 2 buses,30.71377,76.79134,https://whereismyctu.com/stop/sector-29-30
-S355,Sector 29/31 (Tribune) 13 buses,30.70814,76.78497,https://whereismyctu.com/stop/sector-29-31-tribune
-S356,Sector 29/31 (Tribune) Down 5 buses,30.70803,76.78484,https://whereismyctu.com/stop/sector-29-31-tribune-down
-S357,Sector 30 Market 13 buses,30.71524,76.78794,https://whereismyctu.com/stop/sector-30-market
-S358,Sector 30/27 7 buses,30.71821,76.79367,https://whereismyctu.com/stop/sector-30-27
-S359,Sector 30/29 3 buses,30.71318,76.79033,https://whereismyctu.com/stop/sector-30-29
-S360,Sector 30/32 Hospital 15 buses,30.71139,76.78175,https://whereismyctu.com/stop/sector-30-32-hospital
-S361,Sector 30A/20B 4 buses,30.71911,76.78574,https://whereismyctu.com/stop/sector-30a-20b
-S362,Sector 30D/20C 4 buses,30.71546,76.77982,https://whereismyctu.com/stop/sector-30d-20c
-S363,Sector 30D/32 16 buses,30.71391,76.77941,https://whereismyctu.com/stop/sector-30d-32
-S364,Sector 31 Market 2 buses,30.70537,76.78011,https://whereismyctu.com/stop/sector-31-market
-S365,Sector 31/29 (Tribune) 16 buses,30.70502,76.78882,https://whereismyctu.com/stop/sector-31-29-tribune
-S366,Sector 31/32 Market 4 buses,30.7068,76.78021,https://whereismyctu.com/stop/sector-31-32-market
-S367,Sector 32 Market 3 buses,30.71051,76.7735,https://whereismyctu.com/stop/sector-32-market
-S368,Sector 32/30 Hospital 14 buses,30.7113,76.78155,https://whereismyctu.com/stop/sector-32-30-hospital
-S369,Sector 32/30D 13 buses,30.71339,76.7796,https://whereismyctu.com/stop/sector-32-30d
-S370,Sector 32/31 4 buses,30.70607,76.77894,https://whereismyctu.com/stop/sector-32-31
-S371,Sector 32/31 S.D. College 8 buses,30.70316,76.77439,https://whereismyctu.com/stop/sector-32-31-s-d-college
-S372,Sector 32/33 5 buses,30.7107,76.77224,https://whereismyctu.com/stop/sector-32-33
-S373,Sector 32A/33 1 buses,30.71396,76.77739,https://whereismyctu.com/stop/sector-32a-33
-S374,Sector 33 Market 3 buses,30.71425,76.76931,https://whereismyctu.com/stop/sector-33-market
-S375,Sector 33/20 9 buses,30.71634,76.77705,https://whereismyctu.com/stop/sector-33-20
-S376,Sector 33/32 4 buses,30.71079,76.77212,https://whereismyctu.com/stop/sector-33-32
-S377,Sector 33/34 3 buses,30.71656,76.76736,https://whereismyctu.com/stop/sector-33-34
-S378,Sector 33/34 Labour chowk 4 buses,30.71959,76.77196,https://whereismyctu.com/stop/sector-33-34-labour-chowk
-S379,Sector 33D/32A 1 buses,30.71404,76.7773,https://whereismyctu.com/stop/sector-33d-32a
-S380,Sector 34 Market 3 buses,30.72028,76.76514,https://whereismyctu.com/stop/sector-34-market
-S381,Sector 34/21 9 buses,30.72143,76.77233,https://whereismyctu.com/stop/sector-34-21
-S382,Sector 34/33 2 buses,30.71675,76.76719,https://whereismyctu.com/stop/sector-34-33
-S383,Sector 34/35 19 buses,30.72221,76.76184,https://whereismyctu.com/stop/sector-34-35
-S384,Sector 34A/35B JW Marriot 20 buses,30.72477,76.76619,https://whereismyctu.com/stop/sector-34a-35b-jw-marriot
-S385,Sector 34D/35C 20 buses,30.72058,76.75918,https://whereismyctu.com/stop/sector-34d-35c
-S386,Sector 35/22 5 buses,30.72744,76.76736,https://whereismyctu.com/stop/sector-35-22
-S387,Sector 35/34 16 buses,30.7235,76.76385,https://whereismyctu.com/stop/sector-35-34
-S388,Sector 35/34 Light Point 3 buses,30.72269,76.76284,https://whereismyctu.com/stop/sector-35-34-light-point
-S389,Sector 35/36 Flower Market 25 buses,30.72877,76.75648,https://whereismyctu.com/stop/sector-35-36-flower-market
-S390,Sector 35/36 Kissan bhawan 32 buses,30.73243,76.76231,https://whereismyctu.com/stop/sector-35-36-kissan-bhawan
-S391,Sector 35B/34A JW Marriot 18 buses,30.72513,76.76632,https://whereismyctu.com/stop/sector-35b-34a-jw-marriot
-S392,Sector 35C/34D 18 buses,30.72016,76.75841,https://whereismyctu.com/stop/sector-35c-34d
-S393,Sector 36 Market 3 buses,30.73139,76.75494,https://whereismyctu.com/stop/sector-36-market
-S394,Sector 36/23 Kissan bhawan 2 buses,30.73404,76.76194,https://whereismyctu.com/stop/sector-36-23-kissan-bhawan
-S395,Sector 36/35 Flower Market 25 buses,30.72979,76.75773,https://whereismyctu.com/stop/sector-36-35-flower-market
-S396,Sector 36/35 Kissan Bhawan 28 buses,30.73256,76.76217,https://whereismyctu.com/stop/sector-36-35-kissan-bhawan
-S397,Sector 36/37 3 buses,30.73495,76.75191,https://whereismyctu.com/stop/sector-36-37
-S398,Sector 36B/36C 2 buses,30.73012,76.75683,https://whereismyctu.com/stop/sector-36b-36c
-S399,Sector 37 A Bhaskar Chowk 1 buses,30.74411,76.75217,https://whereismyctu.com/stop/sector-37-a-bhaskar-chowk
-S400,Sector 37 Market (Down) 4 buses,30.73797,76.74946,https://whereismyctu.com/stop/sector-37-market-down
-S401,Sector 37 Market (Up) 2 buses,30.73806,76.74981,https://whereismyctu.com/stop/sector-37-market-up
-S402,Sector 37/24 3 buses,30.74123,76.75654,https://whereismyctu.com/stop/sector-37-24
-S403,Sector 37/36 2 buses,30.73301,76.7488,https://whereismyctu.com/stop/sector-37-36
-S404,Sector 37/38 2 buses,30.74207,76.74892,https://whereismyctu.com/stop/sector-37-38
-S405,Sector 37/41 1 buses,30.73553,76.74441,https://whereismyctu.com/stop/sector-37-41
-S406,Sector 38 Market 6 buses,30.74398,76.74525,https://whereismyctu.com/stop/sector-38-market
-S407,Sector 38 West 8 buses,30.75279,76.73758,https://whereismyctu.com/stop/sector-38-west
-S408,Sector 38 West Light Point 5 buses,30.75043,76.73364,https://whereismyctu.com/stop/sector-38-west-light-point
-S409,Sector 38/25 5 buses,30.74712,76.75196,https://whereismyctu.com/stop/sector-38-25
-S410,Sector 38/25 Light Point 8 buses,30.75071,76.74856,https://whereismyctu.com/stop/sector-38-25-light-point
-S411,Sector 38/37 4 buses,30.74048,76.74642,https://whereismyctu.com/stop/sector-38-37
-S412,Sector 38/39 1 buses,30.74835,76.73513,https://whereismyctu.com/stop/sector-38-39
-S413,Sector 38/40 2 buses,30.7414,76.73997,https://whereismyctu.com/stop/sector-38-40
-S414,Sector 39 Market 3 buses,30.74344,76.7287,https://whereismyctu.com/stop/sector-39-market
-S415,Sector 39/38 west 1 buses,30.74746,76.73553,https://whereismyctu.com/stop/sector-39-38-west
-S416,Sector 39/40 Towards Sector 25 West 1 buses,30.73968,76.73054,https://whereismyctu.com/stop/sector-39-40-towards-sector-25-west
-S417,Sector 39/56 1 buses,30.74199,76.72335,https://whereismyctu.com/stop/sector-39-56
-S418,Sector 4 Panchkula 22 buses,30.69077,76.86047,https://whereismyctu.com/stop/sector-4-panchkula
-S419,Sector 4/11 3 buses,30.6874,76.85599,https://whereismyctu.com/stop/sector-4-11
-S420,Sector 4/12 Maheshpur 3 buses,30.68365,76.86199,https://whereismyctu.com/stop/sector-4-12-maheshpur
-S421,Sector 40 Market 3 buses,30.73807,76.73341,https://whereismyctu.com/stop/sector-40-market
-S422,Sector 40/38 1 buses,30.74342,76.73849,https://whereismyctu.com/stop/sector-40-38
-S423,Sector 40/39 2 buses,30.73979,76.7314,https://whereismyctu.com/stop/sector-40-39
-S424,Sector 40/41 3 buses,30.73529,76.73782,https://whereismyctu.com/stop/sector-40-41
-S425,Sector 40/55 1 buses,30.73356,76.72951,https://whereismyctu.com/stop/sector-40-55
-S426,Sector 40C/41 4 buses,30.73172,76.73233,https://whereismyctu.com/stop/sector-40c-41
-S427,Sector 41 Market Towards 40 3 buses,30.73199,76.73793,https://whereismyctu.com/stop/sector-41-market-towards-40
-S428,Sector 41 Market Towards 42 3 buses,30.73149,76.73837,https://whereismyctu.com/stop/sector-41-market-towards-42
-S429,Sector 41/37 2 buses,30.73455,76.74489,https://whereismyctu.com/stop/sector-41-37
-S430,Sector 41/40 2 buses,30.73508,76.73799,https://whereismyctu.com/stop/sector-41-40
-S431,Sector 41/40 Market 3 buses,30.7332,76.73481,https://whereismyctu.com/stop/sector-41-40-market
-S432,Sector 41/42 5 buses,30.73019,76.74052,https://whereismyctu.com/stop/sector-41-42
-S433,Sector 41A/40B 4 buses,30.73729,76.74134,https://whereismyctu.com/stop/sector-41a-40b
-S434,Sector 42 Market towards ISBT 43 3 buses,30.72468,76.744,https://whereismyctu.com/stop/sector-42-market-towards-isbt-43
-S435,Sector 42 Market towards Sector 41 7 buses,30.72539,76.74331,https://whereismyctu.com/stop/sector-42-market-towards-sector-41
-S436,Sector 42/43 24 buses,30.72284,76.74663,https://whereismyctu.com/stop/sector-42-43
-S437,Sector 42/53 2 buses,30.72394,76.73673,https://whereismyctu.com/stop/sector-42-53
-S438,Sector 43/42 19 buses,30.72191,76.74645,https://whereismyctu.com/stop/sector-43-42
-S439,Sector 43/42- 6 buses,30.72191,76.74645,https://whereismyctu.com/stop/sector-43-42
-S440,Sector 43/44 19 buses,30.71647,76.7524,https://whereismyctu.com/stop/sector-43-44
-S441,Sector 43/44 near 43 Chowk 6 buses,30.71331,76.74761,https://whereismyctu.com/stop/sector-43-44-near-43-chowk
-S442,Sector 43C 21 buses,30.72016,76.74706,https://whereismyctu.com/stop/sector-43c
-S443,Sector 43C/44 27 buses,30.71515,76.75051,https://whereismyctu.com/stop/sector-43c-44
-S444,Sector 44 Market towards 45 10 buses,30.71319,76.75247,https://whereismyctu.com/stop/sector-44-market-towards-45
-S445,Sector 44 market towards 43 4 buses,30.71315,76.75239,https://whereismyctu.com/stop/sector-44-market-towards-43
-S446,Sector 44/43 22 buses,30.71579,76.75161,https://whereismyctu.com/stop/sector-44-43
-S447,Sector 44/45 3 buses,30.70886,76.75462,https://whereismyctu.com/stop/sector-44-45
-S448,Sector 44/51(Colony No. 5) 3 buses,30.70893,76.74899,https://whereismyctu.com/stop/sector-44-51colony-no-5
-S449,Sector 44A/43 15 buses,30.71862,76.75622,https://whereismyctu.com/stop/sector-44a-43
-S450,Sector 44C Gaushala 4 buses,30.70718,76.75209,https://whereismyctu.com/stop/sector-44c-gaushala
-S451,Sector 45 Market 19 buses,30.70595,76.75744,https://whereismyctu.com/stop/sector-45-market
-S452,Sector 45/44 Towards ISBT 43 2 buses,30.7105,76.75741,https://whereismyctu.com/stop/sector-45-44-towards-isbt-43
-S453,Sector 45/44 Up Towards Sukhna Lake 1 buses,30.70892,76.75603,https://whereismyctu.com/stop/sector-45-44-up-towards-sukhna-lake
-S454,Sector 45/46 5 buses,30.70502,76.7628,https://whereismyctu.com/stop/sector-45-46
-S455,Sector 45A/44B 4 buses,30.71296,76.76139,https://whereismyctu.com/stop/sector-45a-44b
-S456,Sector 45D/44 4 buses,30.70756,76.75282,https://whereismyctu.com/stop/sector-45d-44
-S457,Sector 46 Market (Down) 7 buses,30.70228,76.76466,https://whereismyctu.com/stop/sector-46-market-down
-S458,Sector 46 Market (Up) 9 buses,30.70107,76.76565,https://whereismyctu.com/stop/sector-46-market-up
-S459,Sector 46/45 5 buses,30.70486,76.76293,https://whereismyctu.com/stop/sector-46-45
-S460,Sector 46A/45 5 buses,30.70689,76.76599,https://whereismyctu.com/stop/sector-46a-45
-S461,Sector 47 Market (Down) 6 buses,30.69639,76.76869,https://whereismyctu.com/stop/sector-47-market-down
-S462,Sector 47 Market - Up 10 buses,30.69573,76.7698,https://whereismyctu.com/stop/sector-47-market-up
-S463,Sector 47 Outer Towards Ramdarbar 6 buses,30.69254,76.77154,https://whereismyctu.com/stop/sector-47-outer-towards-ramdarbar
-S464,Sector 47C (Down) (Near Gurudwara) 1 buses,30.69224,76.77162,https://whereismyctu.com/stop/sector-47c-down-near-gurudwara
-S465,Sector 48/49 (U.T. Border) (Down) 3 buses,30.68778,76.74991,https://whereismyctu.com/stop/sector-48-49-u-t-border-down
-S466,Sector 48B (UP) 1 buses,30.68677,76.76241,https://whereismyctu.com/stop/sector-48b-up
-S467,Sector 49 Market (UP) 1 buses,30.69349,76.75301,https://whereismyctu.com/stop/sector-49-market-up
-S468,Sector 49/48 (UT Border) (Up) 2 buses,30.68787,76.74983,https://whereismyctu.com/stop/sector-49-48-ut-border-up
-S469,Sector 49A/50B 5 buses,30.69777,76.75163,https://whereismyctu.com/stop/sector-49a-50b
-S470,Sector 50 Market (Down) 5 buses,30.70046,76.7485,https://whereismyctu.com/stop/sector-50-market-down
-S471,Sector 50 Market (UP) 4 buses,30.69984,76.74891,https://whereismyctu.com/stop/sector-50-market-up
-S472,Sector 50/45 2 buses,30.70366,76.75335,https://whereismyctu.com/stop/sector-50-45
-S473,Sector 50/51 8 buses,30.70347,76.7463,https://whereismyctu.com/stop/sector-50-51
-S474,Sector 50B/49A 5 buses,30.69846,76.75234,https://whereismyctu.com/stop/sector-50b-49a
-S475,Sector 50D/51 5 buses,30.7022,76.74481,https://whereismyctu.com/stop/sector-50d-51
-S476,Sector 51 Market 13 buses,30.70594,76.7433,https://whereismyctu.com/stop/sector-51-market
-S477,Sector 51/44(Colony No. 5) 3 buses,30.70886,76.74851,https://whereismyctu.com/stop/sector-51-44colony-no-5
-S478,Sector 51/50 1 buses,30.70356,76.74621,https://whereismyctu.com/stop/sector-51-50
-S479,Sector 51/52 5 buses,30.70881,76.74051,https://whereismyctu.com/stop/sector-51-52
-S480,Sector 51A 10 buses,30.71141,76.74454,https://whereismyctu.com/stop/sector-51a
-S481,Sector 52/51 5 buses,30.7095,76.74149,https://whereismyctu.com/stop/sector-52-51
-S482,Sector 52/53 1 buses,30.71765,76.73477,https://whereismyctu.com/stop/sector-52-53
-S483,Sector 53 near school 2 buses,30.71556,76.73333,https://whereismyctu.com/stop/sector-53-near-school
-S484,Sector 53/42 2 buses,30.72363,76.73654,https://whereismyctu.com/stop/sector-53-42
-S485,Sector 53/52 1 buses,30.71802,76.73572,https://whereismyctu.com/stop/sector-53-52
-S486,Sector 53A near Mohali Barrier 2 buses,30.71319,76.7313,https://whereismyctu.com/stop/sector-53a-near-mohali-barrier
-S487,Sector 55 Phase 1 (35) 4 buses,30.7323,76.71916,https://whereismyctu.com/stop/sector-55-phase-1-35
-S488,Sector 55/40 1 buses,30.73335,76.7291,https://whereismyctu.com/stop/sector-55-40
-S489,Sector 55/Phase-1 2 buses,30.73123,76.71999,https://whereismyctu.com/stop/sector-55-phase-1
-S490,Sector 56/39 1 buses,30.74122,76.7237,https://whereismyctu.com/stop/sector-56-39
-S491,Sector 61/62 3 buses,30.7016,76.7284,https://whereismyctu.com/stop/sector-61-62
-S492,Sector 62/61 3 buses,30.70192,76.72948,https://whereismyctu.com/stop/sector-62-61
-S493,Sector 62/63(U.T. Border) 11 buses,30.69859,76.73811,https://whereismyctu.com/stop/sector-62-63u-t-border
-S494,Sector 63/62(U.T. Border) 7 buses,30.69837,76.73823,https://whereismyctu.com/stop/sector-63-62u-t-border
-S495,Sector 63/64 6 buses,30.69056,76.73989,https://whereismyctu.com/stop/sector-63-64
-S496,Sector 63/Phase-9 13 buses,30.69264,76.73473,https://whereismyctu.com/stop/sector-63-phase-9
-S497,Sector 64 Market/Phase 10 6 buses,30.68785,76.73837,https://whereismyctu.com/stop/sector-64-market-phase-10
-S498,Sector 64/63 1 buses,30.68859,76.73669,https://whereismyctu.com/stop/sector-64-63
-S499,Sector 65/Phase 11 19 buses,30.67692,76.74873,https://whereismyctu.com/stop/sector-65-phase-11
-S500,Sector 66 Market 3 buses,30.67343,76.73247,https://whereismyctu.com/stop/sector-66-market
-S501,Sector 66/81(IISER) 4 buses,30.66776,76.73074,https://whereismyctu.com/stop/sector-66-81iiser
-S502,Sector 66/Industrial Area 7 buses,30.66767,76.73309,https://whereismyctu.com/stop/sector-66-industrial-area
-S503,Sector 66A/82 1 buses,30.65624,76.73909,https://whereismyctu.com/stop/sector-66a-82
-S504,Sector 67 Market 3 buses,30.68122,76.72896,https://whereismyctu.com/stop/sector-67-market
-S505,Sector 67/68 3 buses,30.68063,76.72426,https://whereismyctu.com/stop/sector-67-68
-S506,Sector 67/80 4 buses,30.67861,76.72198,https://whereismyctu.com/stop/sector-67-80
-S507,Sector 68/67 4 buses,30.68711,76.73196,https://whereismyctu.com/stop/sector-68-67
-S508,Sector 68/69 5 buses,30.69007,76.72322,https://whereismyctu.com/stop/sector-68-69
-S509,Sector 68/79 4 buses,30.68366,76.71783,https://whereismyctu.com/stop/sector-68-79
-S510,Sector 69/68 4 buses,30.69032,76.72322,https://whereismyctu.com/stop/sector-69-68
-S511,Sector 69/70 2 buses,30.69774,76.72288,https://whereismyctu.com/stop/sector-69-70
-S512,Sector 7 Market 8 buses,30.73628,76.80085,https://whereismyctu.com/stop/sector-7-market
-S513,Sector 7/19 15 buses,30.73128,76.7995,https://whereismyctu.com/stop/sector-7-19
-S514,Sector 7/26 2 buses,30.73167,76.80565,https://whereismyctu.com/stop/sector-7-26
-S515,Sector 70/69 4 buses,30.6948,76.71766,https://whereismyctu.com/stop/sector-70-69
-S516,Sector 79/68 3 buses,30.68349,76.71746,https://whereismyctu.com/stop/sector-79-68
-S517,Sector 8/17 Panchkula 1 buses,30.69939,76.83959,https://whereismyctu.com/stop/sector-8-17-panchkula
-S518,Sector 8/18 5 buses,30.73792,76.79331,https://whereismyctu.com/stop/sector-8-18
-S519,Sector 8/5 2 buses,30.74415,76.80491,https://whereismyctu.com/stop/sector-8-5
-S520,Sector 8/9 1 buses,30.74242,76.79438,https://whereismyctu.com/stop/sector-8-9
-S521,Sector 80/67 5 buses,30.6781,76.72209,https://whereismyctu.com/stop/sector-80-67
-S522,Sector 81/66(IISER) 6 buses,30.66665,76.73116,https://whereismyctu.com/stop/sector-81-66iiser
-S523,Sector 82/66 Aero City 2 buses,30.65295,76.74269,https://whereismyctu.com/stop/sector-82-66-aero-city
-S524,Sector 82/66A 1 buses,30.65609,76.73885,https://whereismyctu.com/stop/sector-82-66a
-S525,Sector 82/81 1 buses,30.66287,76.73339,https://whereismyctu.com/stop/sector-82-81
-S526,Sector 83/Saini Majra 1 buses,30.64867,76.72541,https://whereismyctu.com/stop/sector-83-saini-majra
-S527,Sector 8D/18 19 buses,30.73958,76.79181,https://whereismyctu.com/stop/sector-8d-18
-S528,Sector 9 Market (Up) 1 buses,30.74784,76.79356,https://whereismyctu.com/stop/sector-9-market-up
-S529,Sector 9/16 Panchkula 14 buses,30.69389,76.84115,https://whereismyctu.com/stop/sector-9-16-panchkula
-S530,Sector 9/17 2 buses,30.74442,76.78766,https://whereismyctu.com/stop/sector-9-17
-S531,Sector 9/8 1 buses,30.74256,76.79419,https://whereismyctu.com/stop/sector-9-8
-S532,Sector 9D/17 1 buses,30.74545,76.78683,https://whereismyctu.com/stop/sector-9d-17
-S533,Shafipur Overbridge 2 buses,30.65618,76.76873,https://whereismyctu.com/stop/shafipur-overbridge
-S534,Sialba Majri 6 buses,30.84283,76.6693,https://whereismyctu.com/stop/sialba-majri
-S535,Singhpura (Down) 10 buses,30.62683,76.82402,https://whereismyctu.com/stop/singhpura-down
-S536,Singhpura (UP) 8 buses,30.63186,76.82333,https://whereismyctu.com/stop/singhpura-up
-S537,Siyonk/Soonak 3 buses,30.80233,76.77248,https://whereismyctu.com/stop/siyonk-soonak
-S538,Sohana 13 buses,30.69122,76.70987,https://whereismyctu.com/stop/sohana
-S539,Sohana Light Point 2 buses,30.69039,76.7123,https://whereismyctu.com/stop/sohana-light-point
-S540,Sri Guru Gobind Singh Sr. Sec. School 1 buses,30.72538,76.76312,https://whereismyctu.com/stop/sri-guru-gobind-singh-sr-sec-school
-S541,Sukhna Lake 12 buses,30.74335,76.80886,https://whereismyctu.com/stop/sukhna-lake
-S542,Sushma Square 8 buses,30.64875,76.84351,https://whereismyctu.com/stop/sushma-square
-S543,Takipur 8 buses,30.84039,76.70759,https://whereismyctu.com/stop/takipur
-S544,Tangori 2 buses,30.59335,76.70438,https://whereismyctu.com/stop/tangori
-S545,Tank Chowk 15 buses,30.7074,76.86459,https://whereismyctu.com/stop/tank-chowk
-S546,Tanki Mod 2 buses,30.61676,76.85737,https://whereismyctu.com/stop/tanki-mod
-S547,Transport Chowk (Down) 18 buses,30.71822,76.81189,https://whereismyctu.com/stop/transport-chowk-down
-S548,Transport Chowk (Up) 17 buses,30.71674,76.81352,https://whereismyctu.com/stop/transport-chowk-up
-S549,Tribune Chowk / Industrial Phase 1/2 20 buses,30.70167,76.79236,https://whereismyctu.com/stop/tribune-chowk-industrial-phase-1-2
-S550,Tribune Chowk 4 buses,30.70354,76.7897,https://whereismyctu.com/stop/tribune-chowk
-S551,U.T. GUEST HOUSE 1 buses,30.74232,76.80952,https://whereismyctu.com/stop/u-t-guest-house
-S552,UT Secretariat Towards High Court 8 buses,30.74989,76.79088,https://whereismyctu.com/stop/ut-secretariat-towards-high-court
-S553,UT Secretariat Towards ISBT 43 10 buses,30.74913,76.78968,https://whereismyctu.com/stop/ut-secretariat-towards-isbt-43
-S554,Victoria Enclave Zirakpur 4 buses,30.65212,76.80331,https://whereismyctu.com/stop/victoria-enclave-zirakpur
-S555,Vikas Nagar 12 buses,30.69008,76.81407,https://whereismyctu.com/stop/vikas-nagar
-S556,Village Nada Bridge 2 buses,30.78348,76.79402,https://whereismyctu.com/stop/village-nada-bridge
-S557,Village Singha Devi Bridge 2 buses,30.78336,76.80006,https://whereismyctu.com/stop/village-singha-devi-bridge
-S558,Vishal Enclave 2 buses,30.61256,76.84662,https://whereismyctu.com/stop/vishal-enclave
-S559,YPS CHOWK (Down) 6 buses,30.70591,76.7352,https://whereismyctu.com/stop/yps-chowk-down
-S560,YPS Chowk (Up) 3 buses,30.7057,76.73557,https://whereismyctu.com/stop/yps-chowk-up
-S561,YPS/Sector 52/61 2 buses,30.70928,76.73132,https://whereismyctu.com/stop/yps-sector-52-61
-S562,YPS/Sector 61/52 3 buses,30.709,76.73128,https://whereismyctu.com/stop/yps-sector-61-52
-S563,Zirakpur (Down) 19 buses,30.65884,76.82052,https://whereismyctu.com/stop/zirakpur-down
-S564,Zirakpur (Up) 20 buses,30.65744,76.82091,https://whereismyctu.com/stop/zirakpur-up
-S565,Zirakpur Bus Stand 7 buses,30.65917,76.82125,https://whereismyctu.com/stop/zirakpur-bus-stand
-S566,sector 20/21 6 buses,30.72361,76.77847,https://whereismyctu.com/stop/sector-20-21
-S567,sector 21/20 3 buses,30.7246,76.78002,https://whereismyctu.com/stop/sector-21-20
+stop_id,stop_name,latitude,longitude
+S001,10/16 ART GALLERY,30.74824,76.78451
+S002,12/11 (Rally Chowk),30.68036,76.8523
+S003,16/10 ROSE GARDEN,30.74819,76.78425
+S004,3 BRD (Base Repair Depot),30.68861,76.78544
+S005,39 Grain Market,30.74417,76.72341
+S006,48 Motor Market/Jagatpura-,30.68565,76.76065
+S007,Aroma,30.7306,76.77496
+S008,Attawa Chowk towards 43,30.7252,76.75063
+S009,Attawa Chowk towards Kissan Bhawan,30.72648,76.75259
+S010,Attawa/Sector 36/42,30.73072,76.74798
+S011,Attawa/Sector 42/36,30.72978,76.7487
+S012,BACK SIDE POLICE LINE Sector 26,30.72707,76.81359
+S013,Badi Karoran,30.78361,76.80981
+S014,Balongi,30.73351,76.6954
+S015,Baltana,30.66808,76.82636
+S016,Bansawali Chungi,30.74468,76.65295
+S017,Bassi Light Point(U.T. Barrier),30.72173,76.7305
+S018,Behlana Old Airport,30.67522,76.79857
+S019,Bella Homes,30.60208,76.84867
+S020,Bella Homes,30.60208,76.84867
+S021,Bella Vista,30.70076,76.86433
+S022,Bhabat,30.65476,76.8037
+S023,Bhago Majra,30.67326,76.67115
+S024,Bhankarpur (Down),30.60672,76.83736
+S025,Bhankarpur (Up),30.6066,76.83722
+S026,Bird Park,30.74727,76.80786
+S027,Block,30.83393,76.67339
+S028,Boothgarh,30.83381,76.68469
+S029,Brodhi,30.83367,76.63524
+S030,CTU Depot 2,30.71025,76.81256
+S031,CTU Workshop (UP),30.71099,76.8117
+S032,CTU Workshop,30.71101,76.81358
+S033,CTU Workshop towards railway station,30.70967,76.8158
+S034,CVRM DAV School,30.59567,76.84712
+S035,CVRM DAV School,30.59567,76.84712
+S036,Cantonment,30.72137,76.87465
+S037,Chandpur,30.83386,76.65049
+S038,Chappar Chiri,30.70927,76.65721
+S039,Chatt Village,30.6138,76.79018
+S040,Chawala Hospital Chowk (Down),30.70843,76.7239
+S041,Chhattbir ZOO,30.60785,76.79447
+S042,Colony No. 4,30.70052,76.80334
+S043,Command Hospital (Down),30.71087,76.85463
+S044,Command Hospital (Up),30.71071,76.85432
+S045,DAV Model School Sec-7,30.73608,76.80664
+S046,Daddu Majra Colony,30.75456,76.74626
+S047,Dadu Majra Colony,30.75402,76.73659
+S048,Dadu Majra Village,30.75939,76.73487
+S049,Daffarpur,30.64311,76.8823
+S050,Daun (Down),30.73797,76.68208
+S051,Daun (Up),30.73823,76.68223
+S052,Dayalpura,30.63941,76.78723
+S053,Depot 3 Workshop,30.75378,76.74884
+S054,Dera Bassi,30.58449,76.84405
+S055,Derri,30.62083,76.69161
+S056,Desu Majra,30.74144,76.6712
+S057,Desumajra/Nijjar chowk,30.74258,76.66578
+S058,Devilal chowk Panchkula,30.68331,76.86726
+S059,Dhakoli Border,30.65806,76.84479
+S060,Dhanas (Down),30.76946,76.75026
+S061,Dhanas (Up),30.76975,76.74999
+S062,Dhanas Colony,30.7749,76.7527
+S063,Dhanas near Bridge,30.76078,76.74459
+S064,Dolphin Chowk,30.72945,76.8521
+S065,Dosarna,30.83197,76.60648
+S066,ECO City New Chandigarh,30.81679,76.73211
+S067,Eco City-2 Block C Takipur,30.82979,76.71605
+S068,Eco City-2 Block D,30.83555,76.71589
+S069,Elante Mall (Down),30.70589,76.79668
+S070,Elante Mall (Up),30.70515,76.79725
+S071,Faidan Village,30.68844,76.76542
+S072,Fatehgarh,30.8319,76.61251
+S073,Ferozpur (Down),30.8148,76.73855
+S074,Ferozpur (Up),30.81832,76.73821
+S075,Fire Brigade Phase-2 Towards Ramdarbar,30.69655,76.78643
+S076,Fire Brigade Phase-2 Towards Sector 31,30.69668,76.78634
+S077,Focal Point/Silver City,30.60775,76.85007
+S078,Focal Point/Silver City,30.60775,76.85007
+S079,Fortis Hospital,30.69383,76.73081
+S080,Fortis-PSEB (Down),30.69608,76.73193
+S081,Furniture Chowk(UT Border),30.72729,76.73384
+S082,G.M.C.H. 32,30.70859,76.78304
+S083,Golden Sand Apartment Dhakoli,30.64677,76.84321
+S084,Golf Range,30.73696,76.81093
+S085,Hallo Majra (Down),30.69408,76.80027
+S086,Hallo Majra (UP),30.69384,76.79988
+S087,High Court,30.7578,76.80278
+S088,Homi Bhabha Hospital,30.81583,76.7382
+S089,Hoshiarpur,30.83573,76.72421
+S090,Housing Board Chowk,30.70811,76.83675
+S091,Housing Board Chowk Towards ISBT 43,30.7076,76.83548
+S092,Housing Board Chowk Towards Panchkula,30.70901,76.83895
+S093,Housing Board Towards 9/16,30.70717,76.83773
+S094,IRB Camp,30.79185,76.76772
+S095,ISBT 17,30.73637,76.77837
+S096,ISBT 43,30.71709,76.74341
+S097,ISBT Mohali,30.73306,76.70577
+S098,IT Park (Down),30.73026,76.84546
+S099,IT Park Up,30.72975,76.84327
+S100,IVY Hospital (Down),30.70736,76.70798
+S101,IVY Hospital (Up),30.70698,76.70698
+S102,Indira Colony Down,30.72022,76.83785
+S103,Indira Colony Up,30.7202,76.84075
+S104,Industrial Area Phase -1/ Sector 28,30.71124,76.80204
+S105,Industrial Area Phase 2,30.69591,76.78643
+S106,Industrial Area Phase 2 in front Tata Motors,30.69905,76.78505
+S107,Industrial Area Phase 2 near PRTC,30.7032,76.78892
+S108,Industrial Area Phase 2 near passport office,30.69934,76.78482
+S109,Industrial Area Phase 2/Phase 1,30.7017,76.79192
+S110,Industrial Area Phase-1,30.71393,76.8087
+S111,Jagatpura/ 48 Motor Market,30.68547,76.76079
+S112,Jal Vayu Tower,30.75362,76.6741
+S113,Jayanti Majri,30.82328,76.77632
+S114,Jhande Majra,30.85537,76.65196
+S115,Jhurheri,30.66807,76.77939
+S116,K.V. School- 29,30.71134,76.79619
+S117,K.V. School-31,30.70432,76.77958
+S118,KFC,30.74044,76.6747
+S119,Kaali Baari Mandir towards 3BRD,30.69551,76.77887
+S120,Kaali Baari Mandir towards 47,30.69511,76.77899
+S121,Kadi Majra,30.83342,76.66145
+S122,Kaimbwala 1,30.75641,76.82911
+S123,Kaimbwala 2,30.75668,76.82146
+S124,Kakrali,30.63736,76.87694
+S125,Kalagram Down,30.7097,76.82869
+S126,Kalagram Up,30.70827,76.83086
+S127,Kanoda,30.82949,76.60106
+S128,Kartarpur,30.83697,76.69904
+S129,Kharar,30.75163,76.63874
+S130,Khera,30.85259,76.66089
+S131,Khizrabad,30.87541,76.65475
+S132,Khuda Alisher,30.77312,76.80892
+S133,Khuda Lahora (Down),30.77572,76.7698
+S134,Khuda Lahora (Up),30.77592,76.7699
+S135,Khuda Lahora Bridge,30.77195,76.76956
+S136,Khuda Lahora Mod (Govt. High School-Sec-12),30.77095,76.77146
+S137,Kila Chungi,30.74726,76.64819
+S138,Kishan bhavan,30.73294,76.76302
+S139,Kishangarh Down,30.73093,76.83029
+S140,Kishangarh Up,30.73101,76.83227
+S141,Kubaheri,30.87476,76.6766
+S142,Kurali,30.83061,76.58182
+S143,Lake Chowk,30.7408,76.80771
+S144,Lakhnaur (DC Office Mohali),30.69387,76.69042
+S145,Lakhnaur,30.69476,76.68441
+S146,Landran (Down),30.69139,76.66531
+S147,Landran (Up),30.69061,76.66342
+S148,Lohgarh,30.64437,76.80773
+S149,MLA Flats (Down),30.75522,76.79943
+S150,MLA Flats (Up),30.7547,76.79857
+S151,Madanpur (Down),30.7171,76.72338
+S152,Madanpur (Up),30.71809,76.72481
+S153,Madanpur 32 (Down),30.66552,76.89038
+S154,Madanpur 32 (Up),30.66554,76.88979
+S155,Majra/Siswan T/P,30.84587,76.72057
+S156,Majri Chowk,30.69965,76.87275
+S157,Maloya,30.7522,76.7176
+S158,Maloya Mod/Anaj Mandi Towards Maloya,30.74662,76.72703
+S159,Maloya Mod/Anaj Mandi Towards Water Works,30.74701,76.7271
+S160,ManakPur/Sangatpura,30.84883,76.68416
+S161,Manauli,30.64243,76.7236
+S162,Mani Majra,30.71343,76.84331
+S163,Mani Majra Fun Republic,30.71211,76.84389
+S164,Mani Majra Fun Republic(UP),30.71421,76.84435
+S165,Mani Majra Town,30.71971,76.82995
+S166,Mansa Devi Complex,30.72067,76.85274
+S167,Mata Mansa Devi,30.72283,76.8582
+S168,Mauli Jagran,30.68816,76.82378
+S169,Mauli Nabi,30.67316,76.72634
+S170,MedCity Light,30.8139,76.73884
+S171,Milk Colony Towards Barrier,30.76472,76.74688
+S172,Milk Colony Towards Depot 3,30.76521,76.74723
+S173,Mini Secretariat (Down),30.75188,76.79404
+S174,Mini Secretariat (Up),30.75087,76.79264
+S175,Modern Complex,30.71616,76.83102
+S176,Moginanad/Sector 25 (Down),30.67221,76.89018
+S177,Moginanad/Sector 25 (Up),30.67188,76.88983
+S178,Mohali Bus Stand,30.69711,76.72695
+S179,Morni T-Point,30.68935,76.89032
+S180,Mubarkpur,30.61309,76.85136
+S181,Mullanpur,30.80163,76.74338
+S182,Mundi Kharar/Gillco,30.74345,76.65839
+S183,Nabha Sahib (Down),30.63912,76.80353
+S184,Nabha Sahib,30.64164,76.80126
+S185,Nabha Village,30.64022,76.80436
+S186,Nada Sahib,30.69501,76.88289
+S187,Naya Gaon,30.76927,76.79225
+S188,Naya gaon Gate-1,30.77473,76.78038
+S189,Naya gaon Gate-2,30.77803,76.78184
+S190,Naya gaon Gate-3,30.78177,76.78649
+S191,New Airport,30.66836,76.78508
+S192,New Airport Chowk- Mohali (Up),30.64401,76.75549
+S193,New Maloya Colony,30.75985,76.71566
+S194,New OPD (Down),30.76213,76.78179
+S195,New OPD (Up),30.76182,76.78159
+S196,P.S.E.B. Sector 62,30.69587,76.73401
+S197,PGI,30.76222,76.77324
+S198,PGI(UP),30.75947,76.77541
+S199,Palsora (Chandigarh),30.73021,76.72744
+S200,"Parchh, Punjab",30.79995,76.78423
+S201,Paroul (Down),30.82784,76.73149
+S202,Paroul (Up),30.82884,76.7366
+S203,Paultry Farm,30.69604,76.8001
+S204,Phase 6 - 35,30.73747,76.71565
+S205,Phase 8/Amb sahib,30.69889,76.7309
+S206,Phase-11 (Mohali),30.67652,76.74664
+S207,Phase-2 Bassi Theatre,30.72426,76.72778
+S208,Phase-3/5 (Down),30.71442,76.71924
+S209,Phase-3/5 (Up),30.71401,76.7181
+S210,Phase-6 (U.T Border) A,30.7382,76.71463
+S211,Phase-6 (U.T Border) C,30.73847,76.71495
+S212,Phase-7 (Down),30.70394,76.72697
+S213,Platinum Homes/Sanauli,30.63673,76.8461
+S214,Police Line Sec-25,30.66919,76.89012
+S215,Punjab Civil Secratariat,30.76268,76.79969
+S216,Punjab Engineering College (PEC),30.7639,76.78535
+S217,Railway Crossing Towards 28 Grain Market,30.7125,76.8205
+S218,Railway Crossing Towards Manimajra,30.7124,76.82295
+S219,Railway Crossing towards Railway Station,30.71185,76.82229
+S220,Railway Station (Chandigarh),30.70261,76.81909
+S221,Railway Station (Mohali),30.66655,76.73947
+S222,Raipur Kalan (U.T. Border),30.6846,76.82701
+S223,Raipur Khurd,30.67808,76.80831
+S224,Raipur Khurd Towards Zirakpur,30.67581,76.80971
+S225,Ram Darbar,30.69344,76.78826
+S226,Ramgarh,30.64676,76.88557
+S227,Rock garden Towards Sectt.,30.75194,76.80387
+S228,Rock garden towards lake,30.75133,76.8044
+S229,SECTOR 46/47,30.69882,76.76729
+S230,SECTOR 47/46,30.69908,76.76801
+S231,Saketri,30.74624,76.84447
+S232,Saneta,30.64181,76.685
+S233,Santemajra,30.72083,76.65271
+S234,Sarangpur Barrier (Down),30.78638,76.75563
+S235,Sarangpur Barrier (Up),30.78598,76.7566
+S236,Sarangpur School (Down),30.78267,76.76034
+S237,Sarangpur School (UP),30.78333,76.75953
+S238,Sarangpur Village (Down),30.7802,76.75435
+S239,Sarangpur Village (UP),30.77954,76.75416
+S240,Sec-39/Water Works--13 A Towards ISBT 43,30.74698,76.72843
+S241,Sec-39/Water Works--13 C,30.7472,76.72812
+S242,Sector 10/09 near Matka Chowk,30.74782,76.7874
+S243,Sector 10/11,30.75897,76.7902
+S244,Sector 10/11 Panchkula,30.68762,76.84974
+S245,Sector 10/15 Panchkula,30.68781,76.84431
+S246,Sector 10/16 General Hospital,30.75156,76.78185
+S247,Sector 10D/11,30.75603,76.78551
+S248,Sector 11/10,30.75825,76.78906
+S249,Sector 11/10 Panchkula,30.68787,76.85056
+S250,Sector 11/12 Rally Chowk Panchkula,30.6805,76.85212
+S251,Sector 11/15,30.75663,76.77767
+S252,Sector 11/4,30.68784,76.85546
+S253,Sector 11A/2 PEC,30.76463,76.78688
+S254,Sector 11B/10,30.7575,76.78785
+S255,Sector 11C/10,30.75364,76.78169
+S256,Sector 12 Panchkula (Down),30.68343,76.85539
+S257,Sector 12/2,30.76548,76.78815
+S258,Sector 12/4 Maheshpur,30.68438,76.86053
+S259,Sector 123 (Mohali),30.76475,76.6681
+S260,Sector 125 (Mohali),30.75667,76.66944
+S261,Sector 14/15,30.75477,76.76917
+S262,Sector 15 market,30.75199,76.77281
+S263,Sector 15/10 Panchkula,30.68774,76.84412
+S264,Sector 15/11,30.75437,76.77931
+S265,Sector 15/14,30.75578,76.7709
+S266,Sector 15/24,30.74999,76.76614
+S267,Sector 16 Market (Down),30.74666,76.7768
+S268,Sector 16 Market (Up),30.74698,76.77654
+S269,Sector 16/10 General Hospital,30.75143,76.7816
+S270,Sector 16/17,30.74208,76.77813
+S271,Sector 16/17 near Matka Chowk,30.7456,76.78395
+S272,Sector 16/23,30.7441,76.77085
+S273,Sector 16/9 Panchkula,30.69384,76.84093
+S274,Sector 17/16,30.74193,76.77829
+S275,Sector 17/16 near Matka Chowk,30.7458,76.78462
+S276,Sector 17/18 (Govt. Press),30.73926,76.78872
+S277,Sector 17/18,30.73432,76.78109
+S278,Sector 17/9 K.C (Down),30.74311,76.78887
+S279,Sector 17/9 K.C (Up),30.74179,76.78975
+S280,Sector 18 Market (Down),30.73339,76.78867
+S281,Sector 18 Market (Up),30.73388,76.78798
+S282,Sector 18/17 (Govt. Press),30.74006,76.79106
+S283,Sector 18/17,30.73734,76.78611
+S284,Sector 18/21,30.73124,76.78176
+S285,Sector 18/8,30.73682,76.7941
+S286,Sector 18D/17,30.73605,76.78411
+S287,Sector 19 Market (Down),30.72863,76.79264
+S288,Sector 19 Market (Up),30.72736,76.79408
+S289,Sector 19/18,30.72802,76.7857
+S290,Sector 19/20,30.7252,76.78726
+S291,Sector 19/27,30.72508,76.79494
+S292,Sector 19/27A,30.72851,76.80038
+S293,Sector 19/7,30.73097,76.79945
+S294,Sector 19C/27,30.72247,76.79082
+S295,Sector 2/11A PEC,30.76449,76.78788
+S296,Sector 2/12,30.76535,76.78824
+S297,Sector 20 Market,30.72124,76.78159
+S298,Sector 20 Panchkula,30.66839,76.85781
+S299,Sector 20/19,30.72397,76.78806
+S300,Sector 20/33,30.71934,76.77462
+S301,Sector 20B/30A,30.71925,76.7856
+S302,Sector 20C/30D,30.71566,76.77962
+S303,Sector 21 Market,30.72658,76.77692
+S304,Sector 21 Market Panchkula,30.67555,76.86416
+S305,Sector 21/18,30.72973,76.78282
+S306,Sector 21/22 Aroma,30.73074,76.77586
+S307,Sector 21/34,30.72513,76.76961
+S308,Sector 21A/22,30.73263,76.77851
+S309,Sector 22,30.73031,76.76692
+S310,Sector 22/17,30.73597,76.7774
+S311,Sector 22/23,30.73678,76.76913
+S312,Sector 22/23 Panchkula,30.67898,76.8806
+S313,Sector 22/35,30.73174,76.7639
+S314,Sector 22C(UP/DOWN),30.72735,76.76997
+S315,Sector 23 Market,30.73799,76.76666
+S316,Sector 23/16,30.74353,76.77107
+S317,Sector 23/22,30.73563,76.76723
+S318,Sector 23/24 Panchkula,30.66843,76.87815
+S319,Sector 23/36,30.73762,76.7595
+S320,Sector 24 Market,30.74595,76.76135
+S321,Sector 24/15,30.74929,76.76646
+S322,Sector 24/25,30.74837,76.75907
+S323,Sector 24/25 Panchkula,30.66694,76.88091
+S324,Sector 24/37,30.74268,76.75562
+S325,Sector 25 near Dental College,30.74631,76.75566
+S326,Sector 25/24,30.74781,76.75808
+S327,Sector 25/38 Light Point,30.74733,76.75227
+S328,Sector 26 Panchkula,30.66151,76.88184
+S329,Sector 26 Polytechnic College Panchkula,30.65761,76.88121
+S330,Sector 26/27,30.72719,76.80326
+S331,Sector 26/27 Outer Panchkula,30.65717,76.88791
+S332,Sector 26/28 Grain Market,30.72252,76.8079
+S333,Sector 26/7,30.73095,76.80443
+S334,Sector 27 Market (Down),30.72279,76.79879
+S335,Sector 27 Market (Up),30.72459,76.79693
+S336,Sector 27/19,30.725,76.79506
+S337,Sector 27/19C,30.7224,76.79089
+S338,Sector 27/26,30.72576,76.80446
+S339,Sector 27/28,30.72084,76.80262
+S340,Sector 27/28 Panchkula,30.65089,76.88035
+S341,Sector 27/30,30.71971,76.79228
+S342,Sector 27A/19,30.72839,76.80047
+S343,Sector 28 Market (Down),30.71731,76.8035
+S344,Sector 28 Market (Up),30.71577,76.80585
+S345,Sector 28 Petrol Pump (Down),30.7152,76.80779
+S346,Sector 28 Petrol Pump (Up),30.71504,76.80811
+S347,Sector 28/26 Grain Market,30.7224,76.80765
+S348,Sector 28/27,30.71989,76.80105
+S349,Sector 28/29,30.71432,76.79767
+S350,Sector 29 Market (Down),30.71073,76.79178
+S351,Sector 29 Market (Up),30.7097,76.79198
+S352,Sector 29/ Industrial Area Phase-1,30.71049,76.80008
+S353,Sector 29/28,30.71311,76.7987
+S354,Sector 29/30,30.71377,76.79134
+S355,Sector 29/31 (Tribune),30.70814,76.78497
+S356,Sector 29/31 (Tribune) Down,30.70803,76.78484
+S357,Sector 30 Market,30.71524,76.78794
+S358,Sector 30/27,30.71821,76.79367
+S359,Sector 30/29,30.71318,76.79033
+S360,Sector 30/32 Hospital,30.71139,76.78175
+S361,Sector 30A/20B,30.71911,76.78574
+S362,Sector 30D/20C,30.71546,76.77982
+S363,Sector 30D/32,30.71391,76.77941
+S364,Sector 31 Market,30.70537,76.78011
+S365,Sector 31/29 (Tribune),30.70502,76.78882
+S366,Sector 31/32 Market,30.7068,76.78021
+S367,Sector 32 Market,30.71051,76.7735
+S368,Sector 32/30 Hospital,30.7113,76.78155
+S369,Sector 32/30D,30.71339,76.7796
+S370,Sector 32/31,30.70607,76.77894
+S371,Sector 32/31 S.D. College,30.70316,76.77439
+S372,Sector 32/33,30.7107,76.77224
+S373,Sector 32A/33,30.71396,76.77739
+S374,Sector 33 Market,30.71425,76.76931
+S375,Sector 33/20,30.71634,76.77705
+S376,Sector 33/32,30.71079,76.77212
+S377,Sector 33/34,30.71656,76.76736
+S378,Sector 33/34 Labour chowk,30.71959,76.77196
+S379,Sector 33D/32A,30.71404,76.7773
+S380,Sector 34 Market,30.72028,76.76514
+S381,Sector 34/21,30.72143,76.77233
+S382,Sector 34/33,30.71675,76.76719
+S383,Sector 34/35,30.72221,76.76184
+S384,Sector 34A/35B JW Marriot,30.72477,76.76619
+S385,Sector 34D/35C,30.72058,76.75918
+S386,Sector 35/22,30.72744,76.76736
+S387,Sector 35/34,30.7235,76.76385
+S388,Sector 35/34 Light Point,30.72269,76.76284
+S389,Sector 35/36 Flower Market,30.72877,76.75648
+S390,Sector 35/36 Kissan bhawan,30.73243,76.76231
+S391,Sector 35B/34A JW Marriot,30.72513,76.76632
+S392,Sector 35C/34D,30.72016,76.75841
+S393,Sector 36 Market,30.73139,76.75494
+S394,Sector 36/23 Kissan bhawan,30.73404,76.76194
+S395,Sector 36/35 Flower Market,30.72979,76.75773
+S396,Sector 36/35 Kissan Bhawan,30.73256,76.76217
+S397,Sector 36/37,30.73495,76.75191
+S398,Sector 36B/36C,30.73012,76.75683
+S399,Sector 37 A Bhaskar Chowk,30.74411,76.75217
+S400,Sector 37 Market (Down),30.73797,76.74946
+S401,Sector 37 Market (Up),30.73806,76.74981
+S402,Sector 37/24,30.74123,76.75654
+S403,Sector 37/36,30.73301,76.7488
+S404,Sector 37/38,30.74207,76.74892
+S405,Sector 37/41,30.73553,76.74441
+S406,Sector 38 Market,30.74398,76.74525
+S407,Sector 38 West,30.75279,76.73758
+S408,Sector 38 West Light Point,30.75043,76.73364
+S409,Sector 38/25,30.74712,76.75196
+S410,Sector 38/25 Light Point,30.75071,76.74856
+S411,Sector 38/37,30.74048,76.74642
+S412,Sector 38/39,30.74835,76.73513
+S413,Sector 38/40,30.7414,76.73997
+S414,Sector 39 Market,30.74344,76.7287
+S415,Sector 39/38 west,30.74746,76.73553
+S416,Sector 39/40 Towards Sector 25 West,30.73968,76.73054
+S417,Sector 39/56,30.74199,76.72335
+S418,Sector 4 Panchkula,30.69077,76.86047
+S419,Sector 4/11,30.6874,76.85599
+S420,Sector 4/12 Maheshpur,30.68365,76.86199
+S421,Sector 40 Market,30.73807,76.73341
+S422,Sector 40/38,30.74342,76.73849
+S423,Sector 40/39,30.73979,76.7314
+S424,Sector 40/41,30.73529,76.73782
+S425,Sector 40/55,30.73356,76.72951
+S426,Sector 40C/41,30.73172,76.73233
+S427,Sector 41 Market Towards 40,30.73199,76.73793
+S428,Sector 41 Market Towards 42,30.73149,76.73837
+S429,Sector 41/37,30.73455,76.74489
+S430,Sector 41/40,30.73508,76.73799
+S431,Sector 41/40 Market,30.7332,76.73481
+S432,Sector 41/42,30.73019,76.74052
+S433,Sector 41A/40B,30.73729,76.74134
+S434,Sector 42 Market towards ISBT 43,30.72468,76.744
+S435,Sector 42 Market towards Sector 41,30.72539,76.74331
+S436,Sector 42/43,30.72284,76.74663
+S437,Sector 42/53,30.72394,76.73673
+S438,Sector 43/42,30.72191,76.74645
+S439,Sector 43/42-,30.72191,76.74645
+S440,Sector 43/44,30.71647,76.7524
+S441,Sector 43/44 near 43 Chowk,30.71331,76.74761
+S442,Sector 43C,30.72016,76.74706
+S443,Sector 43C/44,30.71515,76.75051
+S444,Sector 44 Market towards 45,30.71319,76.75247
+S445,Sector 44 market towards 43,30.71315,76.75239
+S446,Sector 44/43,30.71579,76.75161
+S447,Sector 44/45,30.70886,76.75462
+S448,Sector 44/51(Colony No. 5),30.70893,76.74899
+S449,Sector 44A/43,30.71862,76.75622
+S450,Sector 44C Gaushala,30.70718,76.75209
+S451,Sector 45 Market,30.70595,76.75744
+S452,Sector 45/44 Towards ISBT 43,30.7105,76.75741
+S453,Sector 45/44 Up Towards Sukhna Lake,30.70892,76.75603
+S454,Sector 45/46,30.70502,76.7628
+S455,Sector 45A/44B,30.71296,76.76139
+S456,Sector 45D/44,30.70756,76.75282
+S457,Sector 46 Market (Down),30.70228,76.76466
+S458,Sector 46 Market (Up),30.70107,76.76565
+S459,Sector 46/45,30.70486,76.76293
+S460,Sector 46A/45,30.70689,76.76599
+S461,Sector 47 Market (Down),30.69639,76.76869
+S462,Sector 47 Market - Up,30.69573,76.7698
+S463,Sector 47 Outer Towards Ramdarbar,30.69254,76.77154
+S464,Sector 47C (Down) (Near Gurudwara),30.69224,76.77162
+S465,Sector 48/49 (U.T. Border) (Down),30.68778,76.74991
+S466,Sector 48B (UP),30.68677,76.76241
+S467,Sector 49 Market (UP),30.69349,76.75301
+S468,Sector 49/48 (UT Border) (Up),30.68787,76.74983
+S469,Sector 49A/50B,30.69777,76.75163
+S470,Sector 50 Market (Down),30.70046,76.7485
+S471,Sector 50 Market (UP),30.69984,76.74891
+S472,Sector 50/45,30.70366,76.75335
+S473,Sector 50/51,30.70347,76.7463
+S474,Sector 50B/49A,30.69846,76.75234
+S475,Sector 50D/51,30.7022,76.74481
+S476,Sector 51 Market,30.70594,76.7433
+S477,Sector 51/44(Colony No. 5),30.70886,76.74851
+S478,Sector 51/50,30.70356,76.74621
+S479,Sector 51/52,30.70881,76.74051
+S480,Sector 51A,30.71141,76.74454
+S481,Sector 52/51,30.7095,76.74149
+S482,Sector 52/53,30.71765,76.73477
+S483,Sector 53 near school,30.71556,76.73333
+S484,Sector 53/42,30.72363,76.73654
+S485,Sector 53/52,30.71802,76.73572
+S486,Sector 53A near Mohali Barrier,30.71319,76.7313
+S487,Sector 55 Phase 1 (35),30.7323,76.71916
+S488,Sector 55/40,30.73335,76.7291
+S489,Sector 55/Phase-1,30.73123,76.71999
+S490,Sector 56/39,30.74122,76.7237
+S491,Sector 61/62,30.7016,76.7284
+S492,Sector 62/61,30.70192,76.72948
+S493,Sector 62/63(U.T. Border),30.69859,76.73811
+S494,Sector 63/62(U.T. Border),30.69837,76.73823
+S495,Sector 63/64,30.69056,76.73989
+S496,Sector 63/Phase-9,30.69264,76.73473
+S497,Sector 64 Market/Phase 10,30.68785,76.73837
+S498,Sector 64/63,30.68859,76.73669
+S499,Sector 65/Phase 11,30.67692,76.74873
+S500,Sector 66 Market,30.67343,76.73247
+S501,Sector 66/81(IISER),30.66776,76.73074
+S502,Sector 66/Industrial Area,30.66767,76.73309
+S503,Sector 66A/82,30.65624,76.73909
+S504,Sector 67 Market,30.68122,76.72896
+S505,Sector 67/68,30.68063,76.72426
+S506,Sector 67/80,30.67861,76.72198
+S507,Sector 68/67,30.68711,76.73196
+S508,Sector 68/69,30.69007,76.72322
+S509,Sector 68/79,30.68366,76.71783
+S510,Sector 69/68,30.69032,76.72322
+S511,Sector 69/70,30.69774,76.72288
+S512,Sector 7 Market,30.73628,76.80085
+S513,Sector 7/19,30.73128,76.7995
+S514,Sector 7/26,30.73167,76.80565
+S515,Sector 70/69,30.6948,76.71766
+S516,Sector 79/68,30.68349,76.71746
+S517,Sector 8/17 Panchkula,30.69939,76.83959
+S518,Sector 8/18,30.73792,76.79331
+S519,Sector 8/5,30.74415,76.80491
+S520,Sector 8/9,30.74242,76.79438
+S521,Sector 80/67,30.6781,76.72209
+S522,Sector 81/66(IISER),30.66665,76.73116
+S523,Sector 82/66 Aero City,30.65295,76.74269
+S524,Sector 82/66A,30.65609,76.73885
+S525,Sector 82/81,30.66287,76.73339
+S526,Sector 83/Saini Majra,30.64867,76.72541
+S527,Sector 8D/18,30.73958,76.79181
+S528,Sector 9 Market (Up),30.74784,76.79356
+S529,Sector 9/16 Panchkula,30.69389,76.84115
+S530,Sector 9/17,30.74442,76.78766
+S531,Sector 9/8,30.74256,76.79419
+S532,Sector 9D/17,30.74545,76.78683
+S533,Shafipur Overbridge,30.65618,76.76873
+S534,Sialba Majri,30.84283,76.6693
+S535,Singhpura (Down),30.62683,76.82402
+S536,Singhpura (UP),30.63186,76.82333
+S537,Siyonk/Soonak,30.80233,76.77248
+S538,Sohana,30.69122,76.70987
+S539,Sohana Light Point,30.69039,76.7123
+S540,Sri Guru Gobind Singh Sr. Sec. School,30.72538,76.76312
+S541,Sukhna Lake,30.74335,76.80886
+S542,Sushma Square,30.64875,76.84351
+S543,Takipur,30.84039,76.70759
+S544,Tangori,30.59335,76.70438
+S545,Tank Chowk,30.7074,76.86459
+S546,Tanki Mod,30.61676,76.85737
+S547,Transport Chowk (Down),30.71822,76.81189
+S548,Transport Chowk (Up),30.71674,76.81352
+S549,Tribune Chowk / Industrial Phase 1/2,30.70167,76.79236
+S550,Tribune Chowk,30.70354,76.7897
+S551,U.T. GUEST HOUSE,30.74232,76.80952
+S552,UT Secretariat Towards High Court,30.74989,76.79088
+S553,UT Secretariat Towards ISBT 43,30.74913,76.78968
+S554,Victoria Enclave Zirakpur,30.65212,76.80331
+S555,Vikas Nagar,30.69008,76.81407
+S556,Village Nada Bridge,30.78348,76.79402
+S557,Village Singha Devi Bridge,30.78336,76.80006
+S558,Vishal Enclave,30.61256,76.84662
+S559,YPS CHOWK (Down),30.70591,76.7352
+S560,YPS Chowk (Up),30.7057,76.73557
+S561,YPS/Sector 52/61,30.70928,76.73132
+S562,YPS/Sector 61/52,30.709,76.73128
+S563,Zirakpur (Down),30.65884,76.82052
+S564,Zirakpur (Up),30.65744,76.82091
+S565,Zirakpur Bus Stand,30.65917,76.82125
+S566,sector 20/21,30.72361,76.77847
+S567,sector 21/20,30.7246,76.78002
