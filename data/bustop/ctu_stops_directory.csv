@@ -5,16 +5,12 @@ stop_name,url
 3 BRD (Base Repair Depot) 1 buses,/stop/3-brd-base-repair-depot
 39 Grain Market 2 buses,/stop/39-grain-market
 48 Motor Market/Jagatpura- 3 buses,/stop/48-motor-market-jagatpura
-All bus stops,/stops
-App screens,/#screenshots
 Aroma 42 buses,/stop/aroma
 Attawa Chowk towards 43 23 buses,/stop/attawa-chowk-towards-43
 Attawa Chowk towards Kissan Bhawan 23 buses,/stop/attawa-chowk-towards-kissan-bhawan
 Attawa/Sector 36/42 1 buses,/stop/attawa-sector-36-42
 Attawa/Sector 42/36 1 buses,/stop/attawa-sector-42-36
 BACK SIDE POLICE LINE Sector 26 3 buses,/stop/back-side-police-line-sector-26
-Back to Where is my CTU home,/
-Back to home,/
 Badi Karoran 2 buses,/stop/badi-karoran
 Balongi 10 buses,/stop/balongi
 Baltana 9 buses,/stop/baltana
@@ -32,18 +28,13 @@ Bird Park 2 buses,/stop/bird-park
 Block 8 buses,/stop/block
 Boothgarh 8 buses,/stop/boothgarh
 Brodhi 2 buses,/stop/brodhi
-CTU Bus Guide,/ctu-bus
 CTU Depot 2 1 buses,/stop/ctu-depot-2
 CTU Workshop (UP) 3 buses,/stop/ctu-workshop-up
 CTU Workshop 76 buses,/stop/ctu-workshop
 CTU Workshop towards railway station 1 buses,/stop/ctu-workshop-towards-railway-station
-CTU bus live tracking,/ctu-bus-tracker
-CTU bus route,/ctu-bus-route
-CTU bus timings,/ctu-bus-timings
 CVRM DAV School 1 buses,/stop/cvrm-dav-school
 CVRM DAV School 4 buses,/stop/cvrm-dav-school
 Cantonment 2 buses,/stop/cantonment
-Chandigarh bus stand,/chandigarh-bus-stand
 Chandpur 2 buses,/stop/chandpur
 Chappar Chiri 5 buses,/stop/chappar-chiri
 Chatt Village 3 buses,/stop/chatt-village
@@ -52,9 +43,7 @@ Chhattbir ZOO 3 buses,/stop/chhattbir-zoo
 Colony No. 4 24 buses,/stop/colony-no-4
 Command Hospital (Down) 6 buses,/stop/command-hospital-down
 Command Hospital (Up) 9 buses,/stop/command-hospital-up
-Contact Email,mailto:hello@whereismyctu.app
 DAV Model School Sec-7 8 buses,/stop/dav-model-school-sec-7
-DTC bus live tracking,https://whereismydtc.in
 Daddu Majra Colony 13 buses,/stop/daddu-majra-colony
 Dadu Majra Colony 2 buses,/stop/dadu-majra-colony
 Dadu Majra Village 7 buses,/stop/dadu-majra-village
@@ -62,8 +51,6 @@ Daffarpur 2 buses,/stop/daffarpur
 Daun (Down) 4 buses,/stop/daun-down
 Daun (Up) 6 buses,/stop/daun-up
 Dayalpura 3 buses,/stop/dayalpura
-Delhi bus routes,https://whereismydtc.in/routes
-Delhi bus stops,https://whereismydtc.in/stops
 Depot 3 Workshop 20 buses,/stop/depot-3-workshop
 Dera Bassi 20 buses,/stop/dera-bassi
 Derri 2 buses,/stop/derri
@@ -77,16 +64,13 @@ Dhanas Colony 7 buses,/stop/dhanas-colony
 Dhanas near Bridge 5 buses,/stop/dhanas-near-bridge
 Dolphin Chowk 2 buses,/stop/dolphin-chowk
 Dosarna 2 buses,/stop/dosarna
-Download on Google Play,/api/download?source=web
 ECO City New Chandigarh 12 buses,/stop/eco-city-new-chandigarh
 Eco City-2 Block C Takipur 3 buses,/stop/eco-city-2-block-c-takipur
 Eco City-2 Block D 3 buses,/stop/eco-city-2-block-d
 Elante Mall (Down) 8 buses,/stop/elante-mall-down
 Elante Mall (Up) 7 buses,/stop/elante-mall-up
-FAQ,/#faq
 Faidan Village 12 buses,/stop/faidan-village
 Fatehgarh 2 buses,/stop/fatehgarh
-Features,/#features
 Ferozpur (Down) 4 buses,/stop/ferozpur-down
 Ferozpur (Up) 2 buses,/stop/ferozpur-up
 Fire Brigade Phase-2 Towards Ramdarbar 4 buses,/stop/fire-brigade-phase-2-towards-ramdarbar
@@ -99,7 +83,6 @@ Furniture Chowk(UT Border) 4 buses,/stop/furniture-chowkut-border
 G.M.C.H. 32 4 buses,/stop/g-m-c-h-32
 Golden Sand Apartment Dhakoli 6 buses,/stop/golden-sand-apartment-dhakoli
 Golf Range 2 buses,/stop/golf-range
-Google Play,/api/download?source=footer
 Hallo Majra (Down) 26 buses,/stop/hallo-majra-down
 Hallo Majra (UP) 27 buses,/stop/hallo-majra-up
 High Court 15 buses,/stop/high-court
@@ -113,8 +96,6 @@ IRB Camp 2 buses,/stop/irb-camp
 ISBT 17 151 buses,/stop/isbt-17
 ISBT 43 121 buses,/stop/isbt-43
 ISBT Mohali 10 buses,/stop/isbt-mohali
-ISBT Sector 17,/isbt-sector-17
-ISBT Sector 43,/isbt-sector-43
 IT Park (Down) 1 buses,/stop/it-park-down
 IT Park Up 5 buses,/stop/it-park-up
 IVY Hospital (Down) 1 buses,/stop/ivy-hospital-down
@@ -232,7 +213,6 @@ Phase-6 (U.T Border) C 4 buses,/stop/phase-6-u-t-border-c
 Phase-7 (Down) 4 buses,/stop/phase-7-down
 Platinum Homes/Sanauli 8 buses,/stop/platinum-homes-sanauli
 Police Line Sec-25 7 buses,/stop/police-line-sec-25
-Privacy Policy,/privacy
 Punjab Civil Secratariat 7 buses,/stop/punjab-civil-secratariat
 Punjab Engineering College (PEC) 18 buses,/stop/punjab-engineering-college-pec
 Railway Crossing Towards 28 Grain Market 15 buses,/stop/railway-crossing-towards-28-grain-market
@@ -247,7 +227,6 @@ Ram Darbar 18 buses,/stop/ram-darbar
 Ramgarh 13 buses,/stop/ramgarh
 Rock garden Towards Sectt. 3 buses,/stop/rock-garden-towards-sectt
 Rock garden towards lake 3 buses,/stop/rock-garden-towards-lake
-Routes & timings,/ctu-bus-routes-and-timings
 SECTOR 46/47 4 buses,/stop/sector-46-47
 SECTOR 47/46 4 buses,/stop/sector-47-46
 Saketri 5 buses,/stop/saketri
@@ -557,7 +536,6 @@ Sialba Majri 6 buses,/stop/sialba-majri
 Singhpura (Down) 10 buses,/stop/singhpura-down
 Singhpura (UP) 8 buses,/stop/singhpura-up
 Siyonk/Soonak 3 buses,/stop/siyonk-soonak
-Smart routes,/#smart-routes
 Sohana 13 buses,/stop/sohana
 Sohana Light Point 2 buses,/stop/sohana-light-point
 Sri Guru Gobind Singh Sr. Sec. School 1 buses,/stop/sri-guru-gobind-singh-sr-sec-school
