@@ -7,3 +7,9 @@
 - Ministry of Housing and Urban Affairs (MoHUA): https://www.mohua.gov.in/static/uploads/2025/10/b94af0517f9846d279cd0b0bed2f98b9.pdf
 - OpenStreetMap Road Network via OSMnx: https://www.openstreetmap.org/
 - OSMnx: https://osmnx.readthedocs.io/
+# research papers
+- https://doi.org/10.1016/j.tra.2008.03.011
+- https://doi.org/10.1007/s12469-021-00284-y
+- https://doi.org/10.1061/(ASCE)0733-947X(2006)132:1(40)
+- https://doi.org/10.1016/j.trb.2015.03.006
+- https://doi.org/10.1016/j.trb.2021.10.007
