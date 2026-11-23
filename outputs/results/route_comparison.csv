@@ -1,0 +1,16 @@
+Route,Direction,Chart Number,Model,Routing Status,Distance (km),Estimated Travel Time (min),Stops Retained (%),Historical Boardings Retained,Historical Alightings Retained,Demand-Weighted Disruption,Historical Maximum Volume,Historical Daily Ridership,Historical Load Factor,Estimated Fleet Requirement,Modeled Operating Cost (Rs),Objective Value,Execution Time (s)
+3,UP,1,Reconstructed_Baseline,Connected,30.443,63.87,100.0,86.0,86.0,0.0,76.0,764.0,0.42,4,20266.13,1.0,0.0
+3,UP,1,Constrained_Local_Search,Feasible,27.149,58.91,100.0,86.0,86.0,0.267,76.0,764.0,0.42,4,18072.93,0.6354,0.023
+3,UP,1,Constrained_GA_Best,Feasible,24.708,53.97,100.0,86.0,86.0,0.64,76.0,764.0,0.42,3,16448.14,0.5868,1.364
+11,UP,3,Reconstructed_Baseline,Connected,6.11,14.14,100.0,30.0,30.0,0.0,30.0,240.0,0.17,2,4806.78,1.0,0.0
+11,UP,3,Constrained_Local_Search,Feasible,6.11,14.14,100.0,30.0,30.0,0.0,30.0,240.0,0.17,2,4806.78,0.7,0.0
+11,UP,3,Constrained_GA_Best,Feasible,6.11,14.14,100.0,30.0,30.0,0.0,30.0,240.0,0.17,2,4806.78,0.7,0.245
+17,UP,5,Reconstructed_Baseline,Connected,21.722,47.86,100.0,82.0,82.0,0.0,60.0,2695.0,0.21,12,106481.93,1.0,0.004
+17,UP,5,Constrained_Local_Search,Feasible,21.722,47.86,100.0,82.0,82.0,0.0,60.0,2695.0,0.21,12,106481.93,0.7,0.004
+17,UP,5,Constrained_GA_Best,Feasible,21.722,47.86,100.0,82.0,82.0,0.0,60.0,2695.0,0.21,12,106481.93,0.7,0.303
+18,UP,7,Reconstructed_Baseline,Connected,15.123,33.26,100.0,56.0,54.0,0.0,50.0,1290.0,0.15,5,41186.34,1.0,0.0
+18,UP,7,Constrained_Local_Search,Feasible,15.123,33.26,100.0,56.0,54.0,0.0,50.0,1290.0,0.15,5,41186.34,0.7,0.006
+18,UP,7,Constrained_GA_Best,Feasible,15.123,33.26,100.0,56.0,54.0,0.0,50.0,1290.0,0.15,5,41186.34,0.7,0.509
+143,UP,15,Reconstructed_Baseline,Connected,25.33,57.9,100.0,42.0,42.0,0.0,27.0,501.0,0.23,5,16863.18,1.0,0.0
+143,UP,15,Constrained_Local_Search,Feasible,25.33,57.9,100.0,42.0,42.0,0.0,27.0,501.0,0.23,5,16863.18,0.7,0.007
+143,UP,15,Constrained_GA_Best,Feasible,25.33,57.9,100.0,42.0,42.0,0.0,27.0,501.0,0.23,5,16863.18,0.7,0.293
