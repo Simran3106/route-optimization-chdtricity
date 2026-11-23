@@ -1,93 +1,93 @@
-# Evaluation and validation
+# How do we decide which route is better?
 
-This reference describes the saved default Tricity experiment. For installation and execution, see the [README](../README.md). For the interface, see the [map guide](MAP_GUIDE.md). In the sections below, function names refer to [routing.py](../src/routing/routing.py) unless indicated.
+A shorter route can still take longer on roads where we assume lower speeds, or it can change the stop order more than we want. We first check whether an order follows our rules. For orders that pass, we score the distance, estimated bus time, changes to the historical stop order, and early passes through required stop nodes. We use the same score for the baseline, Local Search and the Genetic Algorithm (GA).
 
-## Experimental design
+## What we measure
 
-Every model works on the same directional chart and uses the same original stop occurrences, selected road nodes, directed graph, and distance-shortest road legs. The baseline keeps the historical ordering. Local Search starts there and tries feasible swaps, short reversals, and insertions, accepting a lower score. The GA starts with the baseline among its candidates, uses tournament selection, crossover, mutation, and elitism, and runs with a population of 50 for 60 generations per seed. The configured seeds are **42, 101, 2024, 7, and 999**. The exported GA row is the result with the lowest objective across seeds. Seeds are repeated searches on one chart, so the paired comparison counts the chart once.
+**Road distance.** We add the lengths of the directed road links on each leg between stops, including any links traveled more than once, and divide by 1,000 to get kilometres. Dijkstra finds each leg by distance. The baseline uses the historical order, so its distance is the length of a reconstructed path. Lower is better if the goal is to travel fewer road kilometres.
 
-A candidate must retain every original occurrence exactly once, preserve the first and last occurrences, meet the displacement limit (three positions by default), and connect every leg in the directed graph. Total distance may reach at most 1.25 times baseline distance by default. When enabled, the corridor check bounds complete candidate path segments relative to the reconstructed baseline. The saved run uses no optional corridor. These are **hard constraints** checked by `is_candidate_feasible` and `RouteCostMatrix._check_corridor`. Objective penalties rank candidates that meet those constraints. Fleet and cost are separate scenarios.
-
-## Road distance and estimated bus time
-
-For a sequence of \(N\) stop occurrences, let \(E\) be the directed road edges traversed across all \(N-1\) legs, counting repetitions. Let \(l_e\) be the GraphML edge length in metres and \(v_e\) the assigned road-class speed in metres per second.
+**Estimated bus time.** For each link we divide its length by its assumed speed and add 30 seconds for every intermediate stop visit. For example, the graph assigns 45 km/h to primary roads and 25 km/h to residential roads. In the calculation below, lengths are in metres and speeds are in metres per second:
 
 $$
-D_{\mathrm{km}} = \frac{\sum_{e\in E} l_e}{1000},
-\qquad
-T_{\mathrm{min}} = \frac{\sum_{e\in E} l_e/v_e + 30\max(N-2,0)}{60}.
+T_{\mathrm{min}}=\frac{\sum_e(\mathrm{length}_e/\mathrm{speed}_e)+30\max(N-2,0)}{60}
 $$
 
-The same definitions apply to the baseline and the optimized sequences. `RoadNetwork._prepare_edge_attributes` sets edge times using road-class assumptions such as 50 km/h on trunk, 45 on primary, 40 on secondary, 30 on tertiary, and 25 on residential roads. `get_shortest_paths` selects paths by **distance**. `RouteCostMatrix.evaluate_sequence` sums distance and time along those paths, adding 30 seconds per intermediate occurrence. Lower distance means fewer modeled kilometres. Lower time means a faster modeled bus traversal. An adjacent pair sharing a snapped node contributes zero road length and drive time, while intermediate dwell still applies. Negative distances or times have no physical meaning. There is no measured traffic, passenger wait, or observed route travel time in either metric.
+Here \(N\) is the number of stop visits. Two consecutive visits at the same snapped node add zero driving distance and time between them. The usual intermediate-stop allowance still applies. Lower estimated time means a faster modeled bus trip. We have no measured congestion or passenger journey times in this calculation.
 
-The [model CSV](../outputs/route_comparison.csv) exports `Distance (km)` and `Estimated Travel Time (min)`. The [GeoJSON](../outputs/optimized_paths.geojson) includes selected node sequences, geometry, and corresponding rounded metrics.
-
-## Objective and its components
-
-Let \(D_0\) and \(T_0\) denote the reconstructed baseline distance and time for the same chart. The implementation in `sequence_objective`, `objective_components`, `calculate_demand_disruption`, and `check_shortcut_stops` is:
+**Stop-order disruption.** For each visit, we count how many positions it moves. Moving from position 3 to position 5 counts as two. We weight the movement by the historical number of boardings plus alightings at that visit, so the same move matters more at a busier stop. If \(w_i\) is that weight and \(p_i\) and \(p_i^0\) are the new and original positions:
 
 $$
-J = 0.5\frac{D}{D_0} + 0.2\frac{T}{T_0} +
-    0.3\frac{P}{\max(N-1,1)} + 0.1S.
+P=\frac{\sum_i w_i\lvert p_i-p_i^0\rvert}{\sum_i w_i}.
 $$
 
-These are default weights. The first three weights are configurable, finite, nonnegative, and must sum to one. The score is dimensionless. Distance and time use consistent units in each ratio. If the relevant baseline denominator is zero, that ratio uses **1**, so it contributes its configured weight. An unreachable sequence scores infinite in `sequence_objective`. A feasible baseline has zero disruption and typically starts at \(0.7+0.1S_0\) under default weights. It may have shortcut encounters.
+If all weights are zero, we use the ordinary average of the movements. Lower disruption keeps the order closer to the historical list by this measure. A zero-weight stop can move without adding to the weighted score when other stops have positive weights. The weights describe activity at stops. They do not link any passenger’s boarding stop to their alighting stop.
 
-| Component | Definition and interpretation | Model CSV field |
-|---|---|---|
-| Distance | Weighted ratio of modeled distance to baseline distance. A ratio of 1 is equal to baseline. A ratio above 1 means longer distance. | `Distance Component` |
-| Time | Weighted ratio of estimated bus time to baseline time. A ratio above 1 means a longer modeled traversal time. | `Travel Time Component` |
-| Disruption | Weighted normalized displacement, as defined below. Zero means the weighted positions are unchanged. With positive total demand, moved zero-weight stops can still yield zero. | `Demand-Weighted Disruption`, `Disruption Component` |
-| Shortcut | \(S\) counts distinct required snapped nodes encountered as interior nodes of a leg before being served. The penalty is \(0.1S\). Zero means there were no such encounters. The raw count is recoverable by dividing the penalty by 0.1. | `Shortcut Penalty` |
-| Combined score | Sum of the four components. Lower is preferred. A reduction can result from changes in any combination of the components. | `Objective Value` |
+**Shortcut penalty.** A shortest road leg can pass through the road node of another required stop before that stop is due to be visited. We count each distinct required node that is passed early inside a leg once and add **0.1** to the score per node. An early pass adds to the score. It does not by itself make an order infeasible.
 
-For stop occurrence \(i\), \(w_i=\mathrm{Boardings}_i+\mathrm{Alightings}_i\), and \(p_i\) and \(p_i^0\) are optimized and historical sequence positions. With positive total observed activity:
+## How we combine the measurements
+
+The objective function is the rule for turning the measurements into one score. With the default weights:
 
 $$
-P = \frac{\sum_i w_i\lvert p_i-p_i^0\rvert}{\sum_i w_i}.
+J=0.5\frac{D}{D_0}+0.2\frac{T}{T_0}+0.3\frac{P}{\max(N-1,1)}+0.1S.
 $$
 
-When all weights are zero, the code takes the unweighted mean of absolute displacement. Lower \(P\) means the ordering stays closer to the historical chart in this measure. The unit is stop positions. Displacement and shortcut counts are nonnegative. They do not measure passenger delays or quantify who traveled between stops.
+- \(D/D_0\) compares distance with the baseline for that chart. It has a weight of **0.5**.
+- \(T/T_0\) compares estimated time with the same chart’s baseline. It has a weight of **0.2**.
+- \(P/\max(N-1,1)\) scales the change in positions to the size of the stop list. It has a weight of **0.3**.
+- \(S\) is the early-pass count. \(0.1S\) is the shortcut penalty.
 
-## Improvement, runtime, and paired comparisons
+Using ratios lets us combine kilometres, minutes and positions in one score. If baseline distance or time is zero, its ratio is set to one. The three adjustable weights must be finite, nonnegative and add up to one. A lower total score is better. A route can become longer and still score better when the other parts decrease enough.
 
-For metric \(M\) with a positive baseline \(M_0\), `improvement_pct` computes \(100(M_0-M)/M_0\). A positive result is a reduction, zero means equal, and negative means an increase. A zero baseline leaves the percentage blank. The CSV columns are `Distance Improvement (%)`, `Estimated Travel Time Improvement (%)`, and `Objective Improvement (%)`. An objective reduction can accompany a distance increase when other score components decrease enough to offset it.
+The [comparison CSV](../outputs/route_comparison.csv) gives the total as `Objective Value` and the four parts as `Distance Component`, `Travel Time Component`, `Disruption Component` and `Shortcut Penalty`. It also gives `Distance (km)`, `Estimated Travel Time (min)` and `Demand-Weighted Disruption` before weighting.
 
-`compare_algorithms` uses absolute tolerances of **0.000001 km** for distance and **0.00000001** units for objective. In paired results, subtract GA from Local Search on the same chart. A difference above tolerance is a GA win, a difference below negative tolerance is a loss, and values between are ties. For each algorithm against baseline, differences within tolerance are treated as unchanged and are zeroed before computing summary percentage statistics. Mean and median are across chart-level percentages with positive baseline denominators. The mean gives equal weight to each chart. The median shows the middle chart-level outcome and can be zero even when the mean is positive. Raw CSV improvement percentages may show very small nonzero differences that the summary treats as ties.
+## Which orders are allowed?
 
-`Execution Time (s)` reports elapsed time for baseline evaluation, Local Search, or the selected GA seed. `GA Selected Seed` identifies the selected run, and `GA Total Across Seeds (s)` covers the GA stage across the configured seeds. The shared path matrix is prepared before these model timings. Lower runtime requires less elapsed time for that measured stage. Zero can occur after rounding short intervals, and negative durations have no intended interpretation. Timings depend on the machine and workload. In the [JSON summary](../outputs/comparison_summary.json), `paired` records wins, ties, losses, and charts with no GA advantage. `local_search` and `ga` record baseline comparisons, rankings, and runtime statistics.
+A **feasible** order passes the checks in [routing.py](../src/routing/routing.py). Both searches must keep every original visit exactly once, including repeats at the same location. The first and last stops stay fixed so the service still starts and ends at the same places. By default, a stop can move at most **three positions**, and the new distance cannot exceed **1.25 times** the baseline distance. These limits let us test nearby changes while keeping the result recognizable as the same service.
 
-## Source retention, snapping, and outcomes
+Every leg has to follow the direction of the road links. If the optional corridor is turned on, the full road paths also have to stay within the chosen distance of the baseline. The saved default run did not use that option. `Routing Status` records whether each model passed. A feasible result may be shorter, longer within the detour limit, or unchanged.
 
-- **Retention and historical fields.** Feasible models preserve all stop occurrences. `Stops Retained (%)` reports 100 for these models. `Historical Boardings Retained` and `Historical Alightings Retained` sum recorded counts for the retained occurrences. `Historical Maximum Volume` describes the original observations and is unavailable if the required observed volumes are incomplete. A zero recorded count represents no observed activity for that field. These values do not predict passenger flows on the reordered sequence. They are set by the model evaluation routines and exported alongside `Routing Status`, `Road Network`, and chart identifiers.
-- **Snapping.** `RoadNetwork.snap_stop`, `nearby_nodes`, and `repair_stop_snaps` use approximate local geographic distances in metres. The stop CSV records `original_osm_node`, `osm_node`, `original_snap_distance_m`, `snap_distance_m`, `snap_reassignment_reason`, and `snap_exceeds_threshold`. Zero means the coordinates coincide with the node. A large distance calls for review, and negative distances have no meaning. The 500 m default bounds alternatives and warns about retained nearest snaps beyond that distance. The search considers up to eight nearby nodes around affected occurrences and chooses a connected complete assignment minimizing added snap distance. This verifies network reachability on the graph. Correct curbside access still requires field verification.
-- **Processing.** `main` writes [chart_processing.csv](../outputs/chart_processing.csv) with `processed`, `infeasible`, `invalid_data`, or `runtime_error` for every chart. Processed charts also have `objective_outcome`, per-model improvement flags, recovery indicators, reassignment counts, and snap warnings. [chart_failures.csv](../outputs/chart_failures.csv) carries source lines and diagnostic text for failures. A header-only failure CSV means no failures were recorded. A processed but unchanged chart can reflect a baseline that neither search improved under the enabled constraints and tolerances.
+## How we compare the searches
 
-## Historical operations and modeled scenarios
+For each chart, all three models use the same records, road graph, snapped nodes, rules and scoring formula. Local Search starts with the historical order. GA includes that order among its candidates and runs with **50 candidates**, **60 generations** and seeds **42, 101, 2024, 7 and 999**. We export the seed with the lowest score. We compare Local Search and GA once per chart.
 
-`match_performance_record` matches a unique route identifier, including any variant, and uses direction when explicitly available. The model CSV can carry historical daily ridership, load factor, administrative route length (km), on-road fleet (buses), vehicle-kilometres, and expenditure (Rs). These are source context and have no universal better direction as optimization metrics. Missing or invalid entries stay blank.
+For distance, estimated time and objective, the improvement percentage is:
 
-`apply_fleet_scenarios` and `evaluate_operational_scenarios` estimate \(\left\lceil1.15(T_{UP}+T_{DOWN})/H\right\rceil\) buses with a common verified positive headway \(H\) in minutes and 15% layover. The opt-in `--verified-headway-minutes` assumes the user has independently verified the headway. It requires one chart per direction for the route, matching reversed terminal IDs, feasible results for the same model, and a usable shared performance record. The value is recorded once per pair on the UP model row as `Modeled Round-Trip Fleet Requirement`. Lower indicates a smaller modeled requirement under those conditions. The saved values are blank.
+$$
+100\times\frac{\text{baseline value}-\text{model value}}{\text{baseline value}}.
+$$
 
-The cost model allocates \(D_{\mathrm{km}} \times \text{historical expenditure} / \text{historical vehicle-km}\) in Rs per directional traversal. It requires positive compatible inputs, including an administrative route length and historical vehicle-km at least as large as that length. `Modeled Operating Cost per Traversal (Rs)` has 246 populated model rows. A lower value indicates a lower modeled allocation under the assumed historical rate. Neither scenario treats zero or negative required inputs as valid, and blanks represent unavailable scenarios. These figures do not establish realized savings, fleet redesign, or staffing requirements.
+Positive means a reduction, zero means equal and negative means an increase. The percentage stays blank when the baseline is zero. We count differences within **0.000001 km** for distance or **0.00000001** for objective as ties. The summary treats those differences as zero when averaging chart percentages. The mean gives every chart equal weight. The median is the middle result, so it can be zero even when some charts improve a lot.
 
-## Validation and final results
+**Runtime** tells us how long each measured model step took in seconds. The shared road paths are prepared before these timings. `Execution Time (s)` reports the selected seed for GA. `GA Selected Seed` tells us which seed won, and `GA Total Across Seeds (s)` records the time across all five searches. Lower means less time on this run. Speed on another machine can differ.
 
-| Check | Evidence |
-|---|---|
-| Routing regression suite | [test_routing.py](../tests/test_routing.py) covers source and fixture integrity, graph direction, Dijkstra, snapping and alternative snapping, repeated occurrences, fixed terminals, displacement and detour constraints, corridor segments, objective consistency, GA repeatability, and operational scenarios. The recorded final audit log reports a pass. |
-| Saved-output validator | [validate_outputs.py](../tests/validate_outputs.py) checks status accounting, the three rows per processed chart, stop retention and original fields, feasible permutations, fixed terminals, displacement and detour, snap records, directed edges and geometries, distance/time consistency, and aggregate metrics. It does not run the optimizers. |
-| Map checks | The regression suite checks generated HTML controls. A separate Chrome smoke check during the final audit observed chart changes and independent layer visibility on the full map. These checks do not validate real-world roads or operating conditions. |
+## Passenger and operating figures
 
-The saved run accounts for **118 processed charts, 354 model rows, 354 directed road paths, and 6,402 stop rows**. It recovered 31 charts with a disconnected nearest-node assignment and recorded 33 reassigned stop occurrences. There were zero residual disconnected charts, invalid records that blocked a chart, or runtime-error outcomes. The 34 distant stop occurrences and the reassigned locations still warrant field review.
+The comparison CSV reports the percentage of original stop visits kept and the sums of their historical boardings and alightings. The maximum observed `Volume` describes the historical sequence and stays blank if observations are incomplete. We also carry through available historical operating figures. These describe the source data and do not affect the search score.
 
-| Saved result | Local Search | GA |
+- **Fleet.** The saved fleet column is blank. The optional estimate requires compatible UP and DOWN charts with reversed terminal IDs and a verified shared headway, meaning minutes between buses. It adds both estimated bus times, allows 15% extra for layover, divides by the headway and rounds up to a whole bus. A lower value would mean a smaller modeled requirement under those assumptions.
+- **Cost.** For a usable route-performance match, we divide historical expenditure by historical vehicle-kilometres and multiply by the modeled route distance. The result is in rupees for one traversal and is present for **246 model rows**. Lower means a smaller allocation under that historical rate. The result does not measure money actually saved.
+
+## Validation
+
+The [routing tests](../tests/test_routing.py) check directed paths, stop matching and alternative matching, repeated visits, fixed terminals, stop movement, detour, the optional corridor, score calculations and consistent GA results with the same seed. They also check basic map controls in generated HTML. The recorded final audit reports that these tests passed.
+
+The [saved-output checker](../tests/validate_outputs.py) checks that each processed chart has three model rows, maintains the original stops and terminal visits, passes the default movement and detour limits, and follows the directed graph. It checks that the exported paths match the geometry of the selected road links, that distance and time agree with those links, and that the saved totals agree with the results.
+
+Matching a stop to a road node is called **snapping**. On 31 charts, the nearest matches left at least one leg disconnected. We tried a small set of nearby alternatives and chose matches that connected the full historical order with the least added snap distance among those tested. That recovered all 31 charts and changed 33 stop matches. The [processing log](../outputs/chart_processing.csv) records recoveries and warnings, and the [failed-chart log](../outputs/chart_failures.csv) records any charts that could not be processed. In the final run it has only a header. The stop CSV records the original and selected nodes and their distances from the stop. The default 500 m distance bounds alternative snaps and flags farther nearest snaps. The 34 visits flagged for distance, as well as the reassigned matches, need field checks before using them for service planning.
+
+## What the final results tell us
+
+The saved run processed **118 charts**, with **354 model results, 354 road paths and 6,402 stop rows**. The table uses the [saved CSV and JSON results](../outputs/comparison_summary.json).
+
+| Result compared with the baseline | Local Search | GA |
 |---|---:|---:|
-| Distance improved / unchanged / worsened | 57 / 58 / 3 | 58 / 58 / 2 |
-| Objective improved / unchanged / worsened | 75 / 43 / 0 | 75 / 43 / 0 |
-| Mean / median distance reduction | 1.394% / 0.000% | 1.684% / 0.000% |
-| Mean / median objective reduction | 5.931% / 1.646% | 6.333% / 1.686% |
-| Mean / median model execution time | 0.013 s / 0.009 s | 0.091 s / 0.085 s, selected seed |
-| GA all-seed runtime | — | 50.73 s total, 0.411 s median per chart |
+| Score improved / unchanged / worsened | 75 / 43 / 0 | 75 / 43 / 0 |
+| Distance shorter / unchanged / longer | 57 / 58 / 3 | 58 / 58 / 2 |
+| Mean / median distance reduction | 1.39% / 0.00% | 1.68% / 0.00% |
+| Mean / median score reduction | 5.93% / 1.65% | 6.33% / 1.69% |
+| Mean / median measured time per chart | 0.013 s / 0.009 s | 0.091 s / 0.085 s for the selected seed |
 
-GA won/tied/lost **10/108/0** on objective and **9/108/1** on distance against Local Search. The frequent ties and zero median distance reductions support a limited practical advantage for GA on this experiment, with more measured search time. No statistical superiority has been established. Both methods lowered objective while increasing distance on charts **21** and **87**, and Local Search did so on chart **96**. On chart 87, GA improved objective by 26.98% with a 3.36% distance increase, while Local Search improved objective by 17.98% with a 2.58% distance increase. The shortcut penalty fell from 0.30 in the baseline to 0.10 under Local Search and 0.00 under GA, offsetting the higher distance, time, and disruption components. Historical observations and these algorithms do not establish passenger travel-time savings or global optimality.
+GA won, tied and lost **10/108/0** on the objective and **9/108/1** on road distance against Local Search. GA did a little better on average and spent **50.73 seconds** across all seeds in the full run, excluding shared path preparation. The large number of ties makes Local Search a useful comparison. On 43 charts both methods ended with the same score as the baseline within tolerance. The original order may already work well, or neither search may have found a better allowed order.
+
+On chart **87**, GA removed a shortcut penalty of **0.30** and lowered the overall score by **26.98%**, even though distance went up **3.36%**. That trade-off is why we report distance and objective separately. We found useful changes on the road graph under our rules. We cannot conclude that the routes are globally optimal or that passengers, buses or the operator would see the same gains in service.

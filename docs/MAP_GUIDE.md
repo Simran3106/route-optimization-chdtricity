@@ -1,60 +1,56 @@
-# Interactive map guide
+# Understanding the map
 
-Open the [saved Folium comparison](../outputs/route_map.html) in Chrome. For PowerShell commands to open it directly or serve it through local HTTP, see the [README](../README.md). The saved HTML displays one historical CTU directional chart at a time. Each chart has a reconstructed path for the recorded stop order and up to two feasible alternatives from Local Search and the Genetic Algorithm (GA). The comparison uses directed road paths. Verified CTU driving geometry would require field or GPS observations.
+Open the [saved map](../outputs/route_map.html). It shows one recorded CTU service chart at a time, with three paths that visit the same stops. The **baseline** follows the historical stop order using shortest road paths. **Local Search** shows the order we found by trying small changes, and **Genetic Algorithm (GA)** shows the best-scoring order from five runs of a wider search.
 
-## Select and compare a chart
+## Choose what to see
 
-1. Open the saved HTML. The full-run map starts on chart **1** for route **3**, direction **UP**.
-2. Use **Route** to choose a route identifier. The available directions update when the route changes.
-3. Use **Direction** to choose **UP** or **DOWN** where available. These labels come from the source charts. They carry no general northbound, southbound, inbound, or outbound meaning.
-4. Use **Chart** to choose one of the chart numbers for that route and direction. The map replaces the previous chart and fits the selected chart’s bounds.
-5. Use the three checkboxes to show or hide the corresponding paths. Their checked states carry over when you switch charts. Stop markers and the metric table remain visible when path layers are unchecked.
-6. Compare the paths. To see the reconstructed alignment alone, leave only **Dashed baseline** checked. Then switch to **Local search** or **Genetic algorithm** to inspect an optimized alignment on its own.
-7. Hover over a line to see its model label or over a stop marker to see its name. Click a stop marker to open its full details.
-8. Read the table to compare the models. The table remains a three-model comparison regardless of which paths are visible.
+1. Pick a **Route** by its service number or code.
+2. Pick a **Direction** from the ones available for that route.
+3. Pick a **Chart**. A chart is one recorded stop sequence with passenger counts for that route and direction. The map replaces the previous chart and zooms to the one you picked.
+4. Check or uncheck the three path layers. Markers and the table stay visible even if you hide the lines.
 
-## Map elements
-
-The color-coded checkboxes identify the path styles.
-
-| Checkbox | Path | Meaning |
-|---|---|---|
-| **Dashed baseline** | Wide dashed blue | Shortest directed road paths connecting the original stop sequence |
-| **Local search** | Medium solid orange | Result from constrained local swaps, short reversals, and insertions |
-| **Genetic algorithm** | Narrow solid green | Lowest-objective result from the configured GA seeds |
-
-Different widths help reveal coincident paths. Shared links are common because all models serve the same stops and use the same road graph. Two different sequences can also produce very similar road paths. Layer toggles let you inspect each path independently. The map has standard pan, zoom, and scale controls. It has no separate reset or comparison-mode button. Selecting a chart fits its bounds again.
-
-Purple **S** and **E** markers denote the original first and last occurrences. **SE** is possible when the start and end share coordinates. Other markers show the earliest original order at that location. An orange-brown marker indicates a moved non-terminal occurrence at those coordinates, and a blue-gray marker indicates no such move. A suffix such as **+1** indicates another historical occurrence at the same coordinates. Stop markers use the recorded coordinates, which can lie away from the snapped road geometry.
-
-The popup groups co-located occurrences and lists their stop names, IDs where available, coordinates, original positions, positions by model, and historical boarding and alighting counts. **(moved)** identifies a change in position. The counts refer to the original observation. The map does not estimate new passenger volumes.
-
-| Table label | What it shows |
+| Checkbox | Line |
 |---|---|
-| **Model** | Baseline, Local Search, or Constrained GA |
-| **km**, **min** | Road distance and estimated bus traversal time |
-| **Objective** | Combined score. Lower is preferred. |
-| **Dist. %**, **Obj. %** | Distance and objective reductions relative to that chart’s baseline. A negative value means an increase. |
-| **Disruption** | Historical demand-weighted displacement in stop positions |
-| **Shortcut** | Penalty for passing distinct required stop nodes before a scheduled visit |
-| **Status** | Model feasibility |
+| **Dashed baseline** | Wide, dashed blue |
+| **Local search** | Medium-width, solid orange |
+| **Genetic algorithm** | Narrow, solid green |
 
-A dash indicates an unavailable value. The HTML embeds values from the comparison CSV, formatted for display. For exact numerical comparisons, consult the [model export](../outputs/route_comparison.csv).
+Paths often share roads because they serve the same stops. Sometimes both searches find the same stop order. If one line covers another, show one layer at a time. Hover over a line to see its model name. You can pan and zoom as usual. Choosing a chart fits the view again.
 
-## Worked example with route 3
+**UP** and **DOWN** are labels in the passenger charts. For route **3**, the **UP** chart (1) goes from **Mauli Jagran** to **PGI(UP)**. The **DOWN** chart (2) goes from **PGI(UP)** to **Mauli Jagran**. The parenthetical text in **PGI(UP)** is part of the stop name. To find the direction for another route, use the recorded first and last stops.
 
-For route **3**, choose **DOWN** and chart **2**. In the original passenger CSV, chart 2 starts at **PGI(UP)** and ends at **Mauli Jagran**. Chart 1, labeled **UP**, goes from **Mauli Jagran** to **PGI(UP)**. The parenthetical text in **PGI(UP)** belongs to the stop name.
+## Read the stops and the table
 
-| Model | Distance | Distance improvement | Objective improvement |
+Purple **S** and **E** mark the first and last stops. The numbered markers show the earliest original stop position at a location. An orange-brown marker shows that at least one non-terminal visit at that location moved in one of the models. Blue-gray marks the other numbered stops. A suffix such as **+1** means the chart records another visit at the same coordinates.
+
+Hover over a marker to see the stop name. Click it to see the stop ID when available, coordinates, historical boardings and alightings, and the position in each order. The popup adds **(moved)** when the position changes and lists repeated visits separately. The marker uses the recorded coordinates, so it may sit a little away from the road line.
+
+| Table label | How to read it |
+|---|---|
+| **Model** | Baseline, Local Search or Constrained GA. |
+| **km** | Total road distance. A smaller value means a shorter path. |
+| **min** | Estimated bus time, including time at intermediate stops. |
+| **Objective** | The overall score. Lower is better under the rules we set. |
+| **Dist. %** | How much distance fell relative to the baseline. A negative value means the route got longer. |
+| **Obj. %** | How much the overall score fell. A negative value means the score got worse. |
+| **Disruption** | How far stop positions moved on average, with more weight for stops with more recorded boardings and alightings. |
+| **Shortcut** | The penalty for passing a required stop’s road node before its scheduled visit. |
+| **Status** | Whether the route passes the checks. A feasible route can still have the same score as the baseline. |
+
+The table rounds numbers for display. A dash means the value is unavailable. Use the [comparison CSV](../outputs/route_comparison.csv) to see the saved values.
+
+## Try two examples
+
+Choose route **3**, direction **DOWN**, chart **2**.
+
+| Model | Distance | Distance reduction | Score reduction |
 |---|---:|---:|---:|
 | Baseline | 25.35 km | 0.00% | 0.00% |
 | Local Search | 23.72 km | 6.43% | 4.55% |
 | GA | 21.96 km | 13.40% | 21.33% |
 
-On this chart, GA improves both distance and objective. Switch to route 3 UP, chart 1, to see a case in which both optimizers report the same distance and objective improvement. They start from the same baseline and may converge on the same feasible solution. A lower objective can also accompany a longer path. For example, route 9C UP, chart 87, has a GA objective improvement of 26.98% alongside a 3.36% increase in road distance.
+The GA path is about **3.40 km shorter** than the baseline. The table’s **13.40%** means that distance fell by that share of the original modeled distance.
 
-## Limits and troubleshooting
+Now choose route **9C**, direction **UP**, chart **87**. The GA score falls by **26.98%**, while the road distance increases by **3.36%**. The score improves mainly because the new path avoids passing required stop nodes early. On an unchanged chart, neither search found a better score among the orders it tried. The baseline path may still be displayed with all three colors.
 
-The map shows historical stop coordinates and road-network reconstructions. Directed connectivity establishes a path in the graph. Confirming platform location and real bus access requires field evidence. The displayed minutes come from assumed road-class speeds plus dwell and do not measure passenger journey times.
-
-If the background is blank but controls and paths appear, the browser may be unable to reach the OpenStreetMap tile service. If the map itself fails to initialize, check access to the external Leaflet assets as well. Serving the file through local HTTP can resolve local-file access issues. It does not replace external resources. If the page shows old values, confirm the path to the HTML and refresh with **Ctrl+F5**. The map reflects the CSV and GeoJSON from the time it was generated. For metric definitions and validation, see the [evaluation guide](EVALUATION.md).
+The paths are based on a road graph and the times use assumed speeds. The popups show historical counts. For more on these limits and how the scores work, see [How we evaluated our results](EVALUATION.md). If the background tiles are blank, check that the browser can reach OpenStreetMap. If the controls also fail, check access to the external Leaflet files. See the [README](../README.md) for opening or serving the map locally.
