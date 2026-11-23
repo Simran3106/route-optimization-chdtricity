@@ -170,51 +170,121 @@ route-optimization-chdtricity/
 
 ---
 
-## Installation
+## Dependencies and Installation
 
-The system requires Python 3.10+ (tested on Python 3.14).
+The project uses standard scientific Python packages managed via [requirements.txt](file:///c:/Users/hppav/OneDrive/Documents/VSCODE/route-optimization-chdtricity/requirements.txt). No proprietary or specialized solver licenses are required.
 
+### System Requirements
+- **Python**: Version 3.10, 3.11, 3.12, 3.13, or 3.14.
+- **Operating System**: Windows 10/11, Ubuntu/Linux, or macOS.
+- **Hardware**: Standard laptop (4GB+ RAM, no GPU required).
+
+### Dependency Manifest (`requirements.txt`)
+The dependencies are categorized into:
+- **Core Data Processing**: `numpy>=1.24.0`, `pandas>=2.0.0`
+- **Graph & Road Network Analysis**: `networkx>=3.0`
+- **Geospatial Visualization & Mapping**: `folium>=0.14.0`, `matplotlib>=3.7.0`, `branca>=0.6.0`
+- **Data Ingestion & Utilities**: `requests>=2.28.0`, `beautifulsoup4>=4.11.0`, `python-dateutil>=2.8.2`
+
+### Step-by-Step Setup Guide
+
+#### 1. Clone or Open the Repository
 ```bash
-# Clone the repository
 git clone https://github.com/hppav/route-optimization-chdtricity.git
 cd route-optimization-chdtricity
+```
 
-# Create and activate virtual environment
+#### 2. Create a Virtual Environment
+Create an isolated environment named `.venv`:
+```bash
 python -m venv .venv
-# Windows:
-.\.venv\Scripts\activate
-# Linux/macOS:
-source .venv/bin/activate
+```
 
-# Install dependencies
+#### 3. Activate the Virtual Environment
+- **On Windows (PowerShell)**:
+  ```powershell
+  .\.venv\Scripts\Activate.ps1
+  ```
+  *(If script execution is disabled in PowerShell, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first).*
+- **On Windows (Command Prompt `cmd`)**:
+  ```cmd
+  .\.venv\Scripts\activate.bat
+  ```
+- **On Linux / macOS (Bash/Zsh)**:
+  ```bash
+  source .venv/bin/activate
+  ```
+
+#### 4. Download and Install Dependencies
+Upgrade pip and install all required libraries using the provided `requirements.txt`:
+```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+#### 5. Verify Installation
+Run the automated test suite to ensure all dependencies and datasets load without error:
+```bash
+python -m tests.test_routing
+```
+*(All 22 test cases should report `[PASS]` and output `ALL 22 TESTS PASSED SUCCESSFULLY!`).*
+
 ---
 
-## Usage
+## Step-by-Step Usage Guide
+
+All commands are runnable from the project root directory.
 
 ### 1. Optimize a Specific Route and Direction
+To run the optimization for a single route-direction (e.g., Route 3 UP, which starts from Mauli Jagran and terminates at PGI):
 ```bash
 python -m src.routing.routing --route 3 --direction UP
 ```
+This command runs:
+- **Approach A**: Reconstructed original-sequence road baseline.
+- **Approach B**: Constrained Local Search.
+- **Approach C**: Constrained Genetic Algorithm across 5 random seeds (`42, 101, 2024, 7, 999`).
+- Generates all evaluation metrics, CSVs, GeoJSON paths, comparison figure, and Folium interactive map.
 
-### 2. Batch Optimize Representative Routes
+### 2. Batch Optimize Representative CTU Routes
+To run batch optimization across all 5 representative routes (Route 3 UP, Route 11 UP, Route 17 UP, Route 18 UP, and Route 143 UP):
 ```bash
 python -m src.routing.routing --all
 ```
+Outputs are compiled into [outputs/route_comparison.csv](file:///c:/Users/hppav/OneDrive/Documents/VSCODE/route-optimization-chdtricity/outputs/route_comparison.csv).
 
-### 3. Run Objective Weight Sensitivity Analysis
+### 3. Run Multi-Objective Sensitivity Analysis
+To evaluate how different objective weightings alter the optimal stop sequence (Distance-Focused vs. Balanced vs. Demand-Preservation-Focused):
 ```bash
 python -m src.routing.routing --route 3 --direction UP --sensitivity
 ```
 
-### 4. Generate Interactive Folium Visualization
+### 4. Custom Parameter Configuration (Optional)
+GA parameters, objective weights, and displacement constraints can be customized via optional CLI flags:
+```bash
+python -m src.routing.routing --route 3 --direction UP --alpha 0.6 --beta 0.2 --gamma 0.2 --max-displacement 2 --pop-size 60 --generations 80
+```
+- `--alpha`: Weight for normalized road distance (default: `0.5`).
+- `--beta`: Weight for normalized estimated travel time (default: `0.2`).
+- `--gamma`: Weight for normalized demand disruption (default: `0.3`).
+- `--max-displacement`: Maximum allowed stop position shift (default: `3`).
+- `--max-detour-ratio`: Maximum allowable detour ratio relative to baseline (default: `1.25`).
+- `--pop-size`: Genetic Algorithm population size (default: `50`).
+- `--generations`: Number of generations (default: `60`).
+- `--seeds`: List of random seeds (default: `42 101 2024 7 999`).
+
+### 5. Generate and View the Interactive Folium Map
+To generate or re-render the interactive map from exported routes:
 ```bash
 python -m src.visualisation.plot_bus_routes --csv outputs/optimized_routes.csv --geojson outputs/optimized_paths.geojson --out outputs/route_map.html
 ```
+Open [outputs/route_map.html](file:///c:/Users/hppav/OneDrive/Documents/VSCODE/route-optimization-chdtricity/outputs/route_map.html) directly in any web browser to:
+- Compare baseline, local search, and GA road trajectories.
+- Toggle between passenger Volume and Boardings.
+- Inspect stop-level popups with historical demand and sequence positions.
 
-### 5. Run Automated Verification Tests
+### 6. Run the Automated Verification Suite
+To execute the comprehensive automated test suite verifying graph integrity, constraints, operators, and data immutability:
 ```bash
 python -m tests.test_routing
 ```
