@@ -1,9 +1,27 @@
+# Environments and IDE
 .venv/
-__pycache__/
-*.pyc
-.ipynb_checkpoints/
 .env
+.vscode/
+.idea/
 
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Raw and temporary scratch caches
 data/raw/*
-outputs/*
 cache/
+*.tmp
+*.log
+
+# Allow final project deliverables in outputs
+!outputs/
+!outputs/route_comparison.csv
+!outputs/optimized_routes.csv
+!outputs/optimized_paths.geojson
+!outputs/route_map.html
+!outputs/comparison.png
