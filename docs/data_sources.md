@@ -74,7 +74,7 @@ This document provides complete provenance, methodology descriptions, and biblio
 - **Default file**. `data/roadnodes/tricity_road_network.graphml` covers Chandigarh, Mohali, and Panchkula. Graph metadata records a simplified WGS84 graph created with OSMnx 2.2.0 on 23 November 2026. The source has 54,469 nodes and 139,725 directed edges.
 - **Optional file**. `data/roadnodes/chandigarh_road_network.graphml` covers Chandigarh and can be selected with `--graphml`.
 - Both files store node longitude in `x`, latitude in `y`, edge lengths in metres in `length`, and optional WKT line geometry. Directed edge orientation preserves one-way links. The supported classes are trunk, primary, secondary and tertiary roads and their links, plus residential, living streets and unclassified roads. Explicitly restricted access links and invalid lengths are excluded.
-- Stop snapping uses all usable nodes, including nodes outside the largest strongly connected component. Disconnected directed legs are recorded as chart failures. The map uses the selected edge geometry in traversal order.
+- Initial stop snapping uses all usable nodes. For unreachable directed legs, a bounded search of nearby nodes around the affected stops checks connectivity over the complete historical sequence. The stop export records original and selected nodes, distances and reassignment reasons. A graph-connected alternative does not establish the actual platform or verify bus access. Remaining failures are recorded in the failure export. The map uses selected edge geometry in traversal order.
 - Sources and tools include [OpenStreetMap](https://www.openstreetmap.org/) and [OSMnx](https://osmnx.readthedocs.io/).
 
 ---

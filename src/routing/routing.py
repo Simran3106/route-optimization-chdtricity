@@ -1553,7 +1553,10 @@ def compare_algorithms(df):
 
 def generate_comparison_plot(evaluations, output_dir, processing=None):
     """Summarize coverage, paired performance, and reductions in one figure."""
-    df = pd.DataFrame([asdict(result) for result in evaluations])
+    return _plot_comparison(pd.DataFrame([asdict(result) for result in evaluations]), output_dir, processing)
+
+
+def _plot_comparison(df, output_dir, processing):
     if df.empty:
         return
     metrics = compare_algorithms(df)
@@ -1568,16 +1571,21 @@ def generate_comparison_plot(evaluations, output_dir, processing=None):
                        counts, color=["#23734d", "#64748b", "#a5481c", "#a5481c", "#a5481c"])
         axes[0, 0].bar_label(axes[0, 0].containers[0], padding=2)
         axes[0, 0].set_ylim(0, max(counts) * 1.17 + 1)
-        axes[0, 0].set_title(f"Chart outcomes ({len(statuses)} discovered)")
+        axes[0, 0].set_title(f"Processing and objective outcomes ({len(statuses)} charts)")
         axes[0, 0].set_ylabel("Directional charts")
     else:
         axes[0, 0].axis("off")
 
     baseline = df[df.model.eq(MODEL_NAMES["baseline"])].set_index("chart_no")
+    distributions = []
     for key, label, color in [("local_search", "Local search", "#e47c27"), ("ga", "GA", "#248c5a")]:
         candidate = df[df.model.eq(MODEL_NAMES[key])].set_index("chart_no")
         pct = (baseline.distance_km - candidate.distance_km) / baseline.distance_km.where(baseline.distance_km > 0) * 100
-        axes[0, 1].hist(pct.dropna(), bins=np.arange(-30, 31, 2), alpha=.55, label=label, color=color)
+        distributions.append((pct.dropna(), label, color))
+    combined = pd.concat([pct for pct, _, _ in distributions])
+    bins = np.histogram_bin_edges(combined, bins=14)
+    for pct, label, color in distributions:
+        axes[0, 1].hist(pct, bins=bins, alpha=.55, label=label, color=color)
     axes[0, 1].set(title="Distribution of distance reductions", xlabel="Reduction (%)", ylabel="Charts")
     axes[0, 1].legend()
 
@@ -1587,9 +1595,16 @@ def generate_comparison_plot(evaluations, output_dir, processing=None):
                               ("ga_losses", "Local search wins", "#e47c27")]:
         values = np.array([pairs["objective"][key], pairs["distance"][key]])
         bars = axes[1, 0].barh(["Objective", "Distance"], values, left=left, color=color, label=label)
-        axes[1, 0].bar_label(bars, [str(v) if v else "" for v in values], label_type="center", color="white")
+        axes[1, 0].bar_label(bars, [str(v) if v >= 4 else "" for v in values],
+                             label_type="center", color="white")
+        for bar, value in zip(bars, values):
+            if 0 < value < 4:
+                axes[1, 0].annotate(str(value), (bar.get_x() + bar.get_width(),
+                                                bar.get_y() + bar.get_height() / 2),
+                                    xytext=(4, 0), textcoords="offset points", va="center")
         left += values
     axes[1, 0].set(title="Paired GA versus local search", xlabel="Processed charts")
+    axes[1, 0].set_xlim(0, max(1, max(left) * 1.05))
     axes[1, 0].legend(loc="lower center", bbox_to_anchor=(.5, -.45), ncols=3)
 
     top = list(metrics["ga"]["distance"]["top_charts"])[:6][::-1]
@@ -1600,7 +1615,7 @@ def generate_comparison_plot(evaluations, output_dir, processing=None):
             rows = df[df.model.eq(model)].set_index("chart_no").loc[ids]
             axes[1, 1].barh(np.arange(len(ids)) + (offset - 1) * .24, rows.distance_km, height=.24,
                             label=label, color=color)
-        labels = [f"Ch {i} ? {baseline.at[i, 'route']} {baseline.at[i, 'direction']}" for i in ids]
+        labels = [f"Ch {i} | {baseline.at[i, 'route']} {baseline.at[i, 'direction']}" for i in ids]
         axes[1, 1].set_yticks(range(len(ids)), labels)
         axes[1, 1].legend()
     axes[1, 1].set(title="Largest GA distance reductions", xlabel="Road distance (km)")

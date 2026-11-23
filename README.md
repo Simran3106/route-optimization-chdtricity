@@ -65,7 +65,7 @@ The optimization pipeline implements three comparative models:
 ```
 
 1. **Approach A — Reconstructed Original-Sequence Baseline**:
-   Stops are ordered by their historical `stop_order` and snapped to the nearest road network node on the selected usable directed graph. Consecutive stops are connected via Dijkstra shortest paths on the directed road network.
+   Stops are ordered by their historical `stop_order` and snapped to the nearest road network node on the selected usable directed graph. The historical stop order is checked across the complete sequence before routing. Consecutive stops are connected by shortest-distance Dijkstra paths. This reconstructs a modeled alignment from the survey stops; actual CTU driving geometry would require independent records.
 2. **Approach B — Constrained Local Search**:
    An iterative first-improvement hill-climbing heuristic applying local adjacent swaps, short 2-opt subsequence reversals (length 2 to 3), and localized insertions within strict displacement limits.
 3. **Approach C — Demand-Aware Constrained Genetic Algorithm**:
@@ -92,9 +92,9 @@ Every candidate route must satisfy:
 7. Disconnected road segments avoided.
 8. Maximum sequence displacement limited ($|p_i^{new} - p_i^{old}| \le K_{\max}$, default $K_{\max} = 3$).
 9. Detour ratio bound ($D \le 1.25 \times D_{\text{baseline}}$).
-10. When `--corridor-m` is supplied, every candidate road-geometry vertex must lie within that distance of a baseline road segment, using a local metric approximation.
+10. When `--corridor-m` is supplied, each candidate road segment must be certified inside the union of metric buffers around the baseline segments. Subdivision certifies coverage of complete subsegments. An ambiguous boundary case is conservatively rejected.
 
-An inaccessible consecutive pair makes the chart infeasible. Multiple occurrences may share a snapped node, with zero driving distance between consecutive occurrences at that node. The snap warning threshold defaults to 500 m and can be changed with `--max-snap-m`. The baseline remains available to both optimizers when it satisfies the constraints.
+The initial snap uses the nearest usable node regardless of component. If a leg is unreachable, collect up to eight nearby nodes per occurrence at the failure and its immediate neighbors. A layered minimum-cost search chooses the smallest total added snap distance over assignments that connect the complete original sequence. When no assignment is found in this bounded search, the chart is recorded as disconnected. The selected node represents a graph-connected hypothesis and requires field validation of platform side and bus access. Multiple occurrences may share a snapped node, with zero driving distance between consecutive occurrences at that node. `--max-snap-m` defaults to 500 m and caps alternative snaps. Original nearest nodes farther away remain eligible and are flagged for review. The baseline remains available to both optimizers when it satisfies the constraints.
 
 ### Fitness Function
 The multi-objective fitness minimizes normalized road distance, estimated travel time, and demand disruption:
@@ -118,14 +118,14 @@ where:
 ## Evaluation Metrics
 
 1. **Road Distance ($D$, km)**: Sum of directed road edge lengths along Dijkstra shortest paths connecting consecutive stops.
-2. **Estimated Travel Time ($T$, min)**: Road traversal time based on functional road-class speed limits (Trunk: 50 km/h, Primary: 45 km/h, Secondary: 40 km/h, Tertiary: 30 km/h, Residential: 25 km/h) plus a standardized dwell time of 30 seconds per intermediate stop.
+2. **Estimated Travel Time ($T$, min)**: Road traversal time based on assumed road-class speeds (Trunk: 50 km/h, Primary: 45 km/h, Secondary: 40 km/h, Tertiary: 30 km/h, Residential: 25 km/h) plus a standardized dwell time of 30 seconds per intermediate stop.
 3. **Demand-Weighted Disruption ($P$)**:
    $$P = \frac{\sum_i w_i |p_i^{\text{new}} - p_i^{\text{old}}|}{\sum_i w_i}$$
    where stop importance $w_i = B_i + A_i$. Measures displacement weighted by historical boarding and alighting activity. Recorded zero demand is valid. Missing or malformed boarding or alighting values make the chart invalid for the weighted analysis. An all-zero chart uses mean unweighted displacement.
 4. **Modeled Round-Trip Fleet** uses $F=\lceil 1.15(T_{UP}+T_{DOWN})/H\rceil$. The 15% allowance represents terminal layover and turnaround. The estimate requires a unique pair with reversed matching terminal IDs and a verified shared peak interval $H$ in minutes. It appears once per route and model on the UP row. Enable it with `--verified-headway-minutes` after checking the source.
 5. **Modeled Cost per Directional Traversal** multiplies modeled road distance by historical expenditure divided by historical vehicle-kilometres. This allocation assumes a constant average cost per vehicle-kilometre and requires a unique exact route match and positive, compatible historical inputs. Historical route length is a plausibility check. The scenario uses no inferred number of trips.
 
-Distance and objective improvement use their respective baseline denominators and are reported in separate columns. Fleet and cost are operational scenarios evaluated after sequencing.
+Distance, estimated bus time, and objective improvements use their respective baseline denominators. The model table exposes four weighted objective components including the shortcut penalty. A zero distance or time denominator contributes the respective weight and leaves the corresponding improvement percentage blank. The summary uses absolute tolerances of 0.000001 km and 0.00000001 objective units for paired and baseline comparisons. Runtime excludes shared path matrix construction. The GA columns show both the selected-seed runtime and time across all seeds. Fleet and cost are operational scenarios evaluated after sequencing.
 
 ---
 
@@ -282,31 +282,44 @@ To generate or re-render the interactive map from exported routes:
 ```bash
 python -m src.visualisation.plot_bus_routes --csv outputs/optimized_routes.csv --geojson outputs/optimized_paths.geojson --out outputs/route_map.html
 ```
-Open [outputs/route_map.html](file:///c:/Users/hppav/OneDrive/Documents/VSCODE/route-optimization-chdtricity/outputs/route_map.html) directly in any web browser to:
-- Compare baseline, local search, and GA road trajectories.
-- Toggle between passenger Volume and Boardings.
-- Inspect stop-level popups with historical demand and sequence positions.
+Open [outputs/route_map.html](outputs/route_map.html) in a browser. In PowerShell, run `Start-Process .\outputs\route_map.html`. The map uses external Leaflet assets and OpenStreetMap tiles.
+- Select route, direction, and chart. Each selection replaces the previous chart.
+- Toggle the blue dashed baseline, orange local search, and green GA layers independently. Nested stroke widths retain visible color around coincident paths without changing the geometry.
+- Check the values loaded from the comparison CSV. Terminal markers show S or E, and co-located stop occurrences share a popup that lists every occurrence and model order. Historical boardings and alightings remain survey observations.
 
 ### 6. Run the Automated Verification Suite
 To execute the comprehensive automated test suite verifying graph integrity, constraints, operators, and data immutability:
 ```bash
 python -m tests.test_routing
+python -m tests.validate_outputs
 ```
+
+The second command checks the saved default Tricity output without running optimization.
 
 ---
 
 ## Experimental Results
 
-The default Tricity run discovered 118 directional charts and processed 87. The remaining 31 had a disconnected directed road leg after snapping. Local search and GA each improved the objective on 50 charts. Road distance decreased on 37 charts under local search and 38 under GA. These counts describe the reconstructed road-network scenarios.
+The default Tricity run processed all **118** directional charts, including the **31** that failed under nearest-node snapping in the earlier run. There were no disconnected charts after repair, invalid charts, or runtime errors. The bounded search changed 33 stop occurrences. Another 34 occurrences exceeded the 500 m snap warning and require review.
 
-The five outputs include the model comparison CSV, stop sequence CSV, road-path GeoJSON, interactive map, and comparison figure. `chart_processing.csv` records every discovered chart, statuses, snap warnings, and model-specific improvement flags. `chart_failures.csv` identifies infeasible charts, invalid source rows, and runtime errors. An unchanged result means neither heuristic improved the baseline objective within the tested search.
+| Metric across 118 paired charts | Local search | GA |
+|---|---:|---:|
+| Mean / median distance reduction | 1.394% / 0.000% | 1.684% / 0.000% |
+| Mean / median objective reduction | 5.931% / 1.646% | 6.333% / 1.686% |
+| Distance improved / unchanged / worsened | 57 / 58 / 3 | 58 / 58 / 2 |
+| Objective improved / unchanged / worsened | 75 / 43 / 0 | 75 / 43 / 0 |
+| Mean / median reported runtime | 0.013 / 0.009 s | 0.091 / 0.085 s (selected seed) |
+
+GA won/tied/lost **10/108/0** against local search on objective and **9/108/1** on distance. All GA seeds together took 50.73 s across the batch, with a median of 0.411 s per chart. Chart 64 had the largest GA distance reduction (14.99%). Both methods increased distance while lowering objective on charts 21 and 87. Local search also did so on chart 96. On chart 87, GA yielded a lower objective and traveled farther than local search. These comparisons apply to the modeled network and assumptions.
+
+The model CSV, stop CSV, road-path GeoJSON, interactive map, and comparison figure describe processed charts. `comparison_summary.json` gives coverage, paired wins and ties, top charts, rankings, and runtime. `chart_processing.csv` records every discovered chart, statuses, snap warnings, and model-specific improvement flags. `chart_failures.csv` identifies infeasible charts, invalid source rows, and runtime errors. An unchanged objective outcome means neither heuristic improved the baseline objective within the stated tolerance. A lower objective can accompany a longer road route. Local search and GA are heuristics and neither establishes global optimality.
 
 ## Limitations
 
 1. **Sampled Historical Demand**: Passenger boardings and alightings originate from peak-hour sample survey charts, not continuous smart-card or real-time 2026 automated passenger counter (APC) data.
 2. **Lack of Origin–Destination (OD) Matrix**: The dataset does not provide individual passenger trip origin-destination pairs. Consequently, passenger travel time savings and route section loads cannot be predicted for reordered sequences.
 3. **Reconstructed Road Paths**: Baseline trajectories represent Dijkstra shortest paths connecting historical stop sequences on OpenStreetMap, which may differ from historical bus turning choices or operational diversions.
-4. **Estimated Traversal Speeds**: Edge traversal times are derived from functional road-class speed guidelines rather than live traffic telemetry.
+4. **Estimated Traversal Speeds**: Edge traversal times use assumed speeds by road class and fixed dwell. Field verification would require bus trajectory and dwell observations.
 5. **Scenario Fleet and Cost Estimations**: Fleet scenarios assume a shared verified headway and use separately estimated directional times. The cost rate may include fixed overheads, so modeled per-traversal costs do not establish realized savings.
 
 ---
