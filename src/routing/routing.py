@@ -1259,8 +1259,10 @@ def generate_comparison_plot(
     output_dir: Path,
 ):
     """
-    Generates comparison.png comparing Distance, Estimated Travel Time,
-    and Demand-Weighted Disruption across models.
+    Generates comparison.png.
+    If <= 8 routes: compares Distance, Time, and Disruption side-by-side.
+    If > 8 routes (full network): plots improvement distribution, Pareto trade-off,
+    and top-performing route distance reductions.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame([asdict(r) for r in evaluations])
@@ -1268,60 +1270,117 @@ def generate_comparison_plot(
         return
 
     df = df[df["model"].isin(["Reconstructed_Baseline", "Constrained_Local_Search", "Constrained_GA_Best"])]
-    routes = df["route"].unique()
+    charts = df["chart_no"].unique()
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    models = ["Reconstructed_Baseline", "Constrained_Local_Search", "Constrained_GA_Best"]
-    labels = ["Baseline", "Local Search", "Constrained GA"]
-    colors = ["#7f7f7f", "#ff7f0e", "#2ca02c"]
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
-    x = np.arange(len(routes))
-    width = 0.25
+    if len(charts) <= 8:
+        # Pilot / Single-route mode: 3 bar charts
+        models = ["Reconstructed_Baseline", "Constrained_Local_Search", "Constrained_GA_Best"]
+        labels = ["Baseline", "Local Search", "Constrained GA"]
+        colors = ["#7f7f7f", "#ff7f0e", "#2ca02c"]
 
-    # 1. Distance
-    for idx, (m, lbl, col) in enumerate(zip(models, labels, colors)):
-        vals = []
-        for r_id in routes:
-            sub = df[(df["route"] == r_id) & (df["model"] == m)]
-            vals.append(sub["distance_km"].values[0] if not sub.empty else 0.0)
-        axes[0].bar(x + (idx - 1) * width, vals, width=width, label=lbl, color=col)
+        x = np.arange(len(charts))
+        width = 0.25
 
-    axes[0].set_title("Road Network Distance (km)", fontsize=11, fontweight="bold")
-    axes[0].set_xticks(x)
-    axes[0].set_xticklabels([f"R-{r}" for r in routes])
-    axes[0].set_ylabel("Distance (km)")
-    axes[0].grid(axis="y", linestyle="--", alpha=0.5)
+        # 1. Distance
+        for idx, (m, lbl, col) in enumerate(zip(models, labels, colors)):
+            vals = []
+            for c_id in charts:
+                sub = df[(df["chart_no"] == c_id) & (df["model"] == m)]
+                vals.append(sub["distance_km"].values[0] if not sub.empty else 0.0)
+            axes[0].bar(x + (idx - 1) * width, vals, width=width, label=lbl, color=col)
 
-    # 2. Time
-    for idx, (m, lbl, col) in enumerate(zip(models, labels, colors)):
-        vals = []
-        for r_id in routes:
-            sub = df[(df["route"] == r_id) & (df["model"] == m)]
-            vals.append(sub["estimated_travel_time_min"].values[0] if not sub.empty else 0.0)
-        axes[1].bar(x + (idx - 1) * width, vals, width=width, label=lbl, color=col)
+        axes[0].set_title("Road Network Distance (km)", fontsize=11, fontweight="bold")
+        axes[0].set_xticks(x)
+        axes[0].set_xticklabels([f"Ch-{c}" for c in charts])
+        axes[0].set_ylabel("Distance (km)")
+        axes[0].grid(axis="y", linestyle="--", alpha=0.5)
 
-    axes[1].set_title("Estimated Travel Time (min)", fontsize=11, fontweight="bold")
-    axes[1].set_xticks(x)
-    axes[1].set_xticklabels([f"R-{r}" for r in routes])
-    axes[1].set_ylabel("Minutes")
-    axes[1].grid(axis="y", linestyle="--", alpha=0.5)
+        # 2. Time
+        for idx, (m, lbl, col) in enumerate(zip(models, labels, colors)):
+            vals = []
+            for c_id in charts:
+                sub = df[(df["chart_no"] == c_id) & (df["model"] == m)]
+                vals.append(sub["estimated_travel_time_min"].values[0] if not sub.empty else 0.0)
+            axes[1].bar(x + (idx - 1) * width, vals, width=width, label=lbl, color=col)
 
-    # 3. Disruption
-    for idx, (m, lbl, col) in enumerate(zip(models, labels, colors)):
-        vals = []
-        for r_id in routes:
-            sub = df[(df["route"] == r_id) & (df["model"] == m)]
-            vals.append(sub["demand_weighted_disruption"].values[0] if not sub.empty else 0.0)
-        axes[2].bar(x + (idx - 1) * width, vals, width=width, label=lbl, color=col)
+        axes[1].set_title("Estimated Travel Time (min)", fontsize=11, fontweight="bold")
+        axes[1].set_xticks(x)
+        axes[1].set_xticklabels([f"Ch-{c}" for c in charts])
+        axes[1].set_ylabel("Minutes")
+        axes[1].grid(axis="y", linestyle="--", alpha=0.5)
 
-    axes[2].set_title("Demand-Weighted Disruption", fontsize=11, fontweight="bold")
-    axes[2].set_xticks(x)
-    axes[2].set_xticklabels([f"R-{r}" for r in routes])
-    axes[2].set_ylabel("Weighted Stop Displacement")
-    axes[2].grid(axis="y", linestyle="--", alpha=0.5)
-    axes[2].legend(loc="upper right")
+        # 3. Disruption
+        for idx, (m, lbl, col) in enumerate(zip(models, labels, colors)):
+            vals = []
+            for c_id in charts:
+                sub = df[(df["chart_no"] == c_id) & (df["model"] == m)]
+                vals.append(sub["demand_weighted_disruption"].values[0] if not sub.empty else 0.0)
+            axes[2].bar(x + (idx - 1) * width, vals, width=width, label=lbl, color=col)
 
-    plt.suptitle("CTU Local Bus Route Optimization - Model Comparison", fontsize=13, fontweight="bold", y=1.02)
+        axes[2].set_title("Demand-Weighted Disruption", fontsize=11, fontweight="bold")
+        axes[2].set_xticks(x)
+        axes[2].set_xticklabels([f"Ch-{c}" for c in charts])
+        axes[2].set_ylabel("Weighted Stop Displacement")
+        axes[2].grid(axis="y", linestyle="--", alpha=0.5)
+        axes[2].legend(loc="upper right")
+
+    else:
+        # Full-dataset network mode (>8 charts)
+        # Compute improvements per chart
+        chart_data = []
+        for c_id in charts:
+            sub_b = df[(df["chart_no"] == c_id) & (df["model"] == "Reconstructed_Baseline")]
+            sub_ga = df[(df["chart_no"] == c_id) & (df["model"] == "Constrained_GA_Best")]
+            sub_ls = df[(df["chart_no"] == c_id) & (df["model"] == "Constrained_Local_Search")]
+            if not sub_b.empty and not sub_ga.empty:
+                b_dist = sub_b["distance_km"].values[0]
+                ga_dist = sub_ga["distance_km"].values[0]
+                ls_dist = sub_ls["distance_km"].values[0] if not sub_ls.empty else b_dist
+                r_name = sub_b["route"].values[0]
+                r_dir = sub_b["direction"].values[0]
+                imp_pct = ((b_dist - ga_dist) / b_dist) * 100.0 if b_dist > 0 else 0.0
+                disp = sub_ga["demand_weighted_disruption"].values[0]
+                chart_data.append({
+                    "chart_no": c_id, "route": r_name, "direction": r_dir,
+                    "b_dist": b_dist, "ls_dist": ls_dist, "ga_dist": ga_dist,
+                    "imp_pct": imp_pct, "disruption": disp
+                })
+
+        cdf = pd.DataFrame(chart_data)
+
+        # Panel 1: Histogram of Distance Improvement Percentage
+        axes[0].hist(cdf["imp_pct"], bins=15, color="#1f77b4", edgecolor="black", alpha=0.8)
+        axes[0].axvline(0, color="gray", linestyle="--", linewidth=1.5)
+        axes[0].set_title(f"Distance Reduction Distribution (N={len(cdf)})", fontsize=11, fontweight="bold")
+        axes[0].set_xlabel("Distance Improvement (%)")
+        axes[0].set_ylabel("Number of Directional Charts")
+        axes[0].grid(axis="y", linestyle="--", alpha=0.5)
+
+        # Panel 2: Distance Reduction vs. Disruption Scatter Plot
+        scatter = axes[1].scatter(cdf["imp_pct"], cdf["disruption"], color="#2ca02c", edgecolors="black", s=45, alpha=0.85)
+        axes[1].set_title("Distance Reduction vs. Disruption", fontsize=11, fontweight="bold")
+        axes[1].set_xlabel("Distance Improvement (%)")
+        axes[1].set_ylabel("Demand-Weighted Disruption")
+        axes[1].grid(True, linestyle="--", alpha=0.5)
+
+        # Panel 3: Top Improved Charts Bar Comparison
+        top_improved = cdf.sort_values("imp_pct", ascending=False).head(5)
+        if not top_improved.empty:
+            tx = np.arange(len(top_improved))
+            twidth = 0.25
+            axes[2].bar(tx - twidth, top_improved["b_dist"], width=twidth, label="Baseline", color="#7f7f7f")
+            axes[2].bar(tx, top_improved["ls_dist"], width=twidth, label="Local Search", color="#ff7f0e")
+            axes[2].bar(tx + twidth, top_improved["ga_dist"], width=twidth, label="GA Best", color="#2ca02c")
+            axes[2].set_title("Top 5 Improved Routes (km)", fontsize=11, fontweight="bold")
+            axes[2].set_xticks(tx)
+            axes[2].set_xticklabels([f"R{r.route} {r.direction}" for _, r in top_improved.iterrows()], rotation=15, ha="right", fontsize=9)
+            axes[2].set_ylabel("Distance (km)")
+            axes[2].grid(axis="y", linestyle="--", alpha=0.5)
+            axes[2].legend(loc="upper right")
+
+    plt.suptitle("CTU Local Bus Route Optimization - Empirical Model Comparison", fontsize=13, fontweight="bold", y=1.02)
     plt.tight_layout()
 
     plot_path = output_dir / "comparison.png"
@@ -1404,13 +1463,9 @@ def main():
             sys.exit(f"Error: No records found for Route {args.route} {args.direction or ''}")
         target_groups = [g for _, g in matched.groupby("chart_no")]
     elif args.all:
-        rep_routes = [("3", "UP"), ("11", "UP"), ("17", "UP"), ("18", "UP"), ("143", "UP")]
-        target_groups = []
-        for r, d in rep_routes:
-            sub = df_passenger[(df_passenger["route"] == r) & (df_passenger["direction"] == d)]
-            if not sub.empty:
-                c_num = sub["chart_no"].iloc[0]
-                target_groups.append(sub[sub["chart_no"] == c_num])
+        # Dynamically discover and process EVERY chart in the primary dataset (all 118 directional charts)
+        target_groups = [g for _, g in df_passenger.groupby("chart_no")]
+        print(f"\n[Batch Mode] Dynamically discovered {len(target_groups)} directional charts across the CTU bus network.")
     else:
         sub = df_passenger[(df_passenger["route"] == "3") & (df_passenger["direction"] == "UP")]
         c_num = sub["chart_no"].iloc[0]
@@ -1457,28 +1512,104 @@ def main():
         print("\nSensitivity analysis completed successfully.")
         return
 
-    for chart_sub in target_groups:
-        stops = extract_stop_occurrences(chart_sub, road_net)
-        key = (stops[0].route, stops[0].direction, stops[0].chart_no)
-        all_stops_dict[key] = stops
+    # Track full execution statistics
+    total_batch_t0 = time.time()
+    n_discovered = len(target_groups)
+    n_processed = 0
+    n_improved = 0
+    n_unchanged = 0
+    n_infeasible = 0
+    route_records = []
 
-        evals, stats = optimize_route_chart(
-            chart_df=chart_sub,
-            road_net=road_net,
-            df_perf=df_perf,
-            alpha=args.alpha,
-            beta=args.beta,
-            gamma=args.gamma,
-            max_displacement=args.max_displacement,
-            max_detour_ratio=args.max_detour_ratio,
-            ga_seeds=args.seeds,
-            pop_size=args.pop_size,
-            n_generations=args.generations,
-        )
-        all_evaluations.extend(evals)
+    for idx, chart_sub in enumerate(target_groups, start=1):
+        c_num = int(chart_sub["chart_no"].iloc[0])
+        r_name = str(chart_sub["route"].iloc[0])
+        r_dir = str(chart_sub["direction"].iloc[0])
 
+        if n_discovered > 5:
+            print(f"[{idx}/{n_discovered}] Optimizing Chart {c_num}: Route {r_name} {r_dir} ({len(chart_sub)} stops)...")
+
+        try:
+            stops = extract_stop_occurrences(chart_sub, road_net)
+            key = (stops[0].route, stops[0].direction, stops[0].chart_no)
+            all_stops_dict[key] = stops
+
+            evals, stats = optimize_route_chart(
+                chart_df=chart_sub,
+                road_net=road_net,
+                df_perf=df_perf,
+                alpha=args.alpha,
+                beta=args.beta,
+                gamma=args.gamma,
+                max_displacement=args.max_displacement,
+                max_detour_ratio=args.max_detour_ratio,
+                ga_seeds=args.seeds,
+                pop_size=args.pop_size,
+                n_generations=args.generations,
+            )
+            all_evaluations.extend(evals)
+            n_processed += 1
+
+            base_eval = evals[0]
+            ga_eval = evals[-1]
+            base_d = base_eval.distance_km
+            ga_d = ga_eval.distance_km
+            imp_pct = ((base_d - ga_d) / base_d) * 100.0 if base_d > 0 else 0.0
+
+            if imp_pct > 0.05:
+                n_improved += 1
+            else:
+                n_unchanged += 1
+
+            route_records.append({
+                "chart_no": c_num,
+                "route": r_name,
+                "direction": r_dir,
+                "stops": len(stops),
+                "baseline_km": base_d,
+                "ga_km": ga_d,
+                "imp_pct": imp_pct,
+                "disruption": ga_eval.demand_weighted_disruption,
+            })
+
+        except Exception as e:
+            n_infeasible += 1
+            print(f"[ERROR] Failed processing Chart {c_num} (Route {r_name} {r_dir}): {e}")
+
+    total_batch_time = time.time() - total_batch_t0
+
+    # Export outputs
     export_results_to_files(all_evaluations, all_stops_dict, output_dir)
     generate_comparison_plot(all_evaluations, output_dir)
+
+    # Print comprehensive execution report
+    print("\n=======================================================")
+    print("FULL NETWORK OPTIMIZATION SUMMARY REPORT")
+    print("=======================================================")
+    print(f"Total Charts Discovered  : {n_discovered}")
+    print(f"Processed Successfully   : {n_processed} ({n_processed / max(n_discovered, 1) * 100:.1f}%)")
+    print(f"Routes Improved          : {n_improved} ({n_improved / max(n_processed, 1) * 100:.1f}%)")
+    print(f"Routes Unchanged         : {n_unchanged} ({n_unchanged / max(n_processed, 1) * 100:.1f}%)")
+    print(f"Failed / Infeasible      : {n_infeasible}")
+    print(f"Total Batch Runtime      : {total_batch_time:.2f} s ({total_batch_time / max(n_processed, 1):.3f} s/chart)")
+
+    if route_records:
+        rec_df = pd.DataFrame(route_records)
+        all_mean_imp = rec_df["imp_pct"].mean()
+        improved_only = rec_df[rec_df["imp_pct"] > 0.05]
+        improved_mean_imp = improved_only["imp_pct"].mean() if not improved_only.empty else 0.0
+
+        print(f"Mean Distance Reduction (All {len(rec_df)} Charts)     : {all_mean_imp:.2f}%")
+        print(f"Mean Distance Reduction (Improved Charts Only) : {improved_mean_imp:.2f}%")
+
+        print("\n--- TOP-PERFORMING IMPROVED ROUTES ---")
+        top_df = rec_df.sort_values("imp_pct", ascending=False).head(10)
+        print(top_df[["chart_no", "route", "direction", "stops", "baseline_km", "ga_km", "imp_pct", "disruption"]].to_string(index=False))
+
+    print("\n[Methodological Boundary Notice]")
+    print("Fleet and cost metrics are directional scenario evaluations for individual route services.")
+    print("Do NOT aggregate them into a network-wide total, as directional trips represent sampled observations")
+    print("rather than simultaneous continuous operations.")
 
     # Generate interactive Folium comparison map
     try:
