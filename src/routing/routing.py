@@ -81,6 +81,7 @@ class StopOccurrence:
     importance: float  # w_i = Boardings + Alightings
     osm_node: Optional[str] = None
     snap_distance_m: float = 0.0
+    snap_exceeds_threshold: bool = False
 
 
 @dataclass
@@ -247,44 +248,60 @@ class RoadNetwork:
         return total_length_m, total_time_sec, path_nodes, coords
 
 
+class InvalidChart(ValueError):
+    pass
+
+
+class InfeasibleChart(ValueError):
+    pass
+
+
 def load_passenger_data(csv_path: Path) -> pd.DataFrame:
     """Load and validate the primary boarding-alighting dataset."""
-    df = pd.read_csv(csv_path)
-    df.columns = [c.strip() for c in df.columns]
+    df = pd.read_csv(csv_path, dtype={"route": "string", "ctu_stop_id": "string"})
+    df.columns = df.columns.str.strip()
+    required = {"chart_no", "route", "direction", "stop_order", "chart_label",
+                "ctu_stop_id", "ctu_stop_name", "latitude", "longitude",
+                "Boardings", "Alightings", "Volume"}
+    if missing := required - set(df.columns):
+        raise ValueError(f"Primary passenger CSV missing required columns: {sorted(missing)}")
 
-    required = [
-        "chart_no", "route", "direction", "stop_order", "chart_label",
-        "latitude", "longitude", "Boardings", "Alightings", "Volume"
-    ]
-    missing = [c for c in required if c not in df.columns]
-    if missing:
-        raise ValueError(f"Primary passenger CSV missing required columns: {missing}")
+    df["route"] = df["route"].str.strip()
+    df["direction"] = df["direction"].str.strip().str.upper()
+    numeric = ["chart_no", "stop_order", "latitude", "longitude", "Boardings", "Alightings", "Volume"]
+    for col in numeric:
+        original = df[col]
+        df[col] = pd.to_numeric(original, errors="coerce")
+        df[f"_invalid_{col}"] = (original.notna() & df[col].isna()) | np.isinf(df[col])
+    df["_source_line"] = np.arange(len(df)) + 2
+    return df.sort_values(["chart_no", "stop_order"], kind="stable").reset_index(drop=True)
 
-    df["chart_no"] = pd.to_numeric(df["chart_no"], errors="coerce").fillna(0).astype(int)
-    df["route"] = df["route"].astype(str).str.strip()
-    df["direction"] = df["direction"].astype(str).str.strip().str.upper()
-    df["stop_order"] = pd.to_numeric(df["stop_order"], errors="coerce").astype(int)
-    df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
-    df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
-    df["Boardings"] = pd.to_numeric(df["Boardings"], errors="coerce").fillna(0.0)
-    df["Alightings"] = pd.to_numeric(df["Alightings"], errors="coerce").fillna(0.0)
-    df["Volume"] = pd.to_numeric(df["Volume"], errors="coerce")
 
-    if "ctu_stop_name" not in df.columns:
-        df["ctu_stop_name"] = df["chart_label"]
-    else:
-        df["ctu_stop_name"] = df["ctu_stop_name"].fillna(df["chart_label"]).astype(str).str.strip()
+def discover_charts(df: pd.DataFrame) -> List[pd.DataFrame]:
+    """Keep unidentified rows as individual invalid inputs for diagnostics."""
+    known = [group for _, group in df.groupby("chart_no")]
+    return known + [df.loc[[idx]] for idx in df.index[df["chart_no"].isna()]]
 
-    if "ctu_stop_id" not in df.columns:
-        df["ctu_stop_id"] = [f"STOP_{i+1}" for i in range(len(df))]
-    else:
-        fallback_ids = pd.Series(
-            [f"CH_{r.chart_no}_S{r.stop_order}" for _, r in df.iterrows()],
-            index=df.index,
-        )
-        df["ctu_stop_id"] = df["ctu_stop_id"].fillna(fallback_ids).astype(str).str.strip()
 
-    return df.sort_values(["chart_no", "stop_order"]).reset_index(drop=True)
+def validate_chart(df: pd.DataFrame) -> None:
+    for col in ("chart_no", "stop_order"):
+        values = df[col]
+        if not (np.isfinite(values) & (values >= 1) & (values % 1 == 0)).all():
+            raise InvalidChart(f"Missing or invalid {col}")
+    if len(df) < 2 or df["stop_order"].duplicated().any():
+        raise InvalidChart("Chart requires at least two uniquely ordered occurrences")
+    if (df["route"].isna().any() or df["route"].eq("").any() or df["route"].nunique() != 1
+            or not df["direction"].isin(["UP", "DOWN"]).all() or df["direction"].nunique() != 1):
+        raise InvalidChart("Chart requires one route and one UP/DOWN direction")
+    for col, bound in (("latitude", 90), ("longitude", 180)):
+        if not df[col].abs().le(bound).all():
+            raise InvalidChart(f"Missing or invalid {col}")
+    for col in ("Boardings", "Alightings"):
+        if not (np.isfinite(df[col]) & df[col].ge(0)).all():
+            raise InvalidChart(f"Missing or invalid {col}; demand-weighted fitness unavailable")
+    invalid_volume = df.get("_invalid_Volume", pd.Series(False, index=df.index))
+    if invalid_volume.any() or np.isinf(df["Volume"]).any() or df["Volume"].lt(0).any():
+        raise InvalidChart("Invalid historical Volume")
 
 
 def load_performance_data(csv_path: Path) -> pd.DataFrame:
@@ -301,14 +318,15 @@ def load_performance_data(csv_path: Path) -> pd.DataFrame:
 
 def extract_stop_occurrences(df: pd.DataFrame, road_net: RoadNetwork) -> List[StopOccurrence]:
     """Convert a route DataFrame slice into structured StopOccurrence objects with snapped nodes."""
+    validate_chart(df)
     stops: List[StopOccurrence] = []
-    for idx, row in enumerate(df.itertuples()):
+    for idx, row in enumerate(df.sort_values("stop_order").itertuples()):
         lat = float(row.latitude)
         lon = float(row.longitude)
         node_id, snap_dist = road_net.snap_stop(lat, lon)
         b = float(row.Boardings)
         a = float(row.Alightings)
-        v = float(row.Volume) if pd.notna(row.Volume) else 0.0
+        v = float(row.Volume)
 
         stop = StopOccurrence(
             occurrence_idx=idx,
@@ -317,8 +335,8 @@ def extract_stop_occurrences(df: pd.DataFrame, road_net: RoadNetwork) -> List[St
             direction=str(row.direction),
             original_order=int(row.stop_order),
             chart_label=str(row.chart_label),
-            ctu_stop_id=str(row.ctu_stop_id),
-            ctu_stop_name=str(row.ctu_stop_name),
+            ctu_stop_id=str(row.ctu_stop_id) if pd.notna(row.ctu_stop_id) else "",
+            ctu_stop_name=str(row.ctu_stop_name) if pd.notna(row.ctu_stop_name) else str(row.chart_label),
             latitude=lat,
             longitude=lon,
             boardings=b,
@@ -327,6 +345,7 @@ def extract_stop_occurrences(df: pd.DataFrame, road_net: RoadNetwork) -> List[St
             importance=b + a,
             osm_node=node_id,
             snap_distance_m=snap_dist,
+            snap_exceeds_threshold=snap_dist > road_net.max_snap_m,
         )
         stops.append(stop)
     return stops
@@ -342,7 +361,7 @@ class RouteCostMatrix:
     pairs of stop occurrences for a single route.
     """
 
-    def __init__(self, stops: List[StopOccurrence], road_net: RoadNetwork):
+    def __init__(self, stops: List[StopOccurrence], road_net: RoadNetwork, corridor_m: Optional[float] = None):
         self.stops = stops
         self.n = len(stops)
         self.road_net = road_net
@@ -353,6 +372,32 @@ class RouteCostMatrix:
         self.path_coords_cache: Dict[Tuple[int, int], List[Tuple[float, float]]] = {}
 
         self._precompute()
+        self.corridor_m = corridor_m
+        self.outside_corridor = set()
+        if corridor_m is not None:
+            _, reference = self.get_full_trajectory(list(range(self.n)))
+            if reference:
+                self._check_corridor(reference, corridor_m)
+
+    def _check_corridor(self, reference, corridor_m):
+        """Check candidate geometry vertices against baseline road segments in local metres."""
+        scale = np.array([111139.0, 111139.0 * math.cos(math.radians(reference[0][0]))])
+        points = (np.asarray(reference) - reference[0]) * scale
+        starts = points[:-1] if len(points) > 1 else points
+        vectors = np.diff(points, axis=0) if len(points) > 1 else np.zeros_like(points)
+        squares = np.sum(vectors ** 2, axis=1)
+        denominator = np.where(squares > 0, squares, 1)
+        point_cache = {}
+        for pair, coords in self.path_coords_cache.items():
+            for coord in coords:
+                if coord not in point_cache:
+                    offsets = (np.asarray(coord) - reference[0]) * scale - starts
+                    fraction = np.clip(np.sum(offsets * vectors, axis=1) / denominator, 0, 1)
+                    residual = offsets - fraction[:, None] * vectors
+                    point_cache[coord] = np.min(np.sum(residual ** 2, axis=1)) > corridor_m ** 2 + 1e-8
+                if point_cache[coord]:
+                    self.outside_corridor.add(pair)
+                    break
 
     def _precompute(self):
         for i in range(self.n):
@@ -399,6 +444,8 @@ class RouteCostMatrix:
 
     def get_full_trajectory(self, seq: List[int]) -> Tuple[List[str], List[Tuple[float, float]]]:
         """Combine full node list and road coordinates for a candidate stop sequence."""
+        if not self.evaluate_sequence(seq)[2]:
+            return [], []
         full_nodes: List[str] = []
         full_coords: List[Tuple[float, float]] = []
 
@@ -450,6 +497,12 @@ def calculate_demand_disruption(stops: List[StopOccurrence], seq: List[int]) -> 
     return weighted_displacement / len(stops)
 
 
+def validate_weights(alpha: float, beta: float, gamma: float) -> None:
+    weights = (alpha, beta, gamma)
+    if not all(math.isfinite(w) and w >= 0 for w in weights) or not math.isclose(sum(weights), 1.0):
+        raise ValueError("Objective weights must be finite, non-negative and sum to 1")
+
+
 def calculate_objective(
     distance_m: float,
     baseline_dist_m: float,
@@ -469,11 +522,12 @@ def calculate_objective(
         T_n = time / baseline_time
         P_n = disruption / (n_stops - 1)
     """
-    if baseline_dist_m <= 0 or baseline_time_sec <= 0:
-        return float("inf")
+    validate_weights(alpha, beta, gamma)
+    if not all(map(math.isfinite, (distance_m, baseline_dist_m, travel_time_sec, baseline_time_sec))):
+        return math.inf
 
-    d_n = distance_m / baseline_dist_m
-    t_n = travel_time_sec / baseline_time_sec
+    d_n = distance_m / baseline_dist_m if baseline_dist_m else 1.0
+    t_n = travel_time_sec / baseline_time_sec if baseline_time_sec else 1.0
     max_disp = max(n_stops - 1, 1)
     p_n = disruption / max_disp
 
@@ -490,27 +544,24 @@ def check_shortcut_stops(
     two scheduled consecutive stops passes through another required stop node out of order.
     Returns the count of out-of-order shortcut violations.
     """
-    violations = 0
-    pos_map = {occurrence_idx: pos for pos, occurrence_idx in enumerate(seq)}
-    stop_node_to_occ = {}
-    for s in stops:
-        if s.osm_node:
-            stop_node_to_occ.setdefault(s.osm_node, []).append(s.occurrence_idx)
+    required_nodes = {stop.osm_node for stop in stops}
+    served_nodes = set()
+    early_nodes = set()
+    for u, v in zip(seq, seq[1:]):
+        served_nodes.add(stops[u].osm_node)
+        interior = cost_matrix.path_nodes_cache.get((u, v), [])[1:-1]
+        early_nodes.update(node for node in interior if node in required_nodes and node not in served_nodes)
+    return len(early_nodes)
 
-    for k in range(len(seq) - 1):
-        u_idx = seq[k]
-        v_idx = seq[k + 1]
-        path_nodes = cost_matrix.path_nodes_cache.get((u_idx, v_idx), [])
-        if len(path_nodes) <= 2:
-            continue
-        interior_nodes = set(path_nodes[1:-1])
-        for interior in interior_nodes:
-            if interior in stop_node_to_occ:
-                for matched_occ in stop_node_to_occ[interior]:
-                    matched_pos = pos_map.get(matched_occ)
-                    if matched_pos is not None and matched_pos > k + 1:
-                        violations += 1
-    return violations
+
+def sequence_objective(seq, stops, cost_matrix, baseline_dist_m, baseline_time_s, alpha, beta, gamma):
+    distance, travel_time, connected = cost_matrix.evaluate_sequence(seq)
+    if not connected:
+        return math.inf
+    disruption = calculate_demand_disruption(stops, seq)
+    return (calculate_objective(distance, baseline_dist_m, travel_time, baseline_time_s,
+                                disruption, len(stops), alpha, beta, gamma)
+            + 0.1 * check_shortcut_stops(seq, cost_matrix, stops))
 
 
 def is_candidate_feasible(
@@ -521,9 +572,9 @@ def is_candidate_feasible(
     max_displacement: int = 3,
     max_detour_ratio: float = 1.25,
 ) -> Tuple[bool, str]:
-    """Validate all 12 hard route constraints."""
+    """Validate stop preservation and road-network constraints."""
     n = len(stops)
-    if len(seq) != n:
+    if n < 2 or len(seq) != n:
         return False, "Stop count mismatch"
 
     if seq[0] != 0:
@@ -542,8 +593,10 @@ def is_candidate_feasible(
     if not connected or math.isinf(dist_m):
         return False, "Disconnected road segments encountered"
 
-    if baseline_dist_m > 0 and (dist_m / baseline_dist_m) > max_detour_ratio:
-        return False, f"Detour ratio {dist_m / baseline_dist_m:.2f} exceeds limit {max_detour_ratio}"
+    if dist_m > baseline_dist_m * max_detour_ratio + 1e-7:
+        return False, f"Route exceeds the maximum detour ratio {max_detour_ratio}"
+    if any(pair in cost_matrix.outside_corridor for pair in zip(seq, seq[1:])):
+        return False, f"Road geometry exceeds the {cost_matrix.corridor_m:g} m baseline corridor"
 
     return True, "Feasible"
 
@@ -555,6 +608,7 @@ def is_candidate_feasible(
 def evaluate_baseline(
     stops: List[StopOccurrence],
     cost_matrix: RouteCostMatrix,
+    alpha: float = 0.5, beta: float = 0.2, gamma: float = 0.3,
 ) -> RouteEvaluation:
     """Evaluate Approach A: Reconstructed original-sequence road baseline."""
     t0 = time.time()
@@ -564,10 +618,11 @@ def evaluate_baseline(
 
     total_b = sum(s.boardings for s in stops)
     total_a = sum(s.alightings for s in stops)
-    max_v = max((s.volume for s in stops), default=0.0)
+    max_v = max(s.volume for s in stops) if all(math.isfinite(s.volume) for s in stops) else None
 
     exec_time = time.time() - t0
-    status = "Connected" if connected else "Failed_Disconnected"
+    feasible, reason = is_candidate_feasible(seq, stops, cost_matrix, dist_m)
+    status = "Feasible" if feasible else reason
 
     return RouteEvaluation(
         route=stops[0].route,
@@ -586,7 +641,7 @@ def evaluate_baseline(
         historical_load_factor=None,
         estimated_fleet_requirement=None,
         modeled_operating_cost_rs=None,
-        objective_value=1.0,
+        objective_value=sequence_objective(seq, stops, cost_matrix, dist_m, time_s, alpha, beta, gamma),
         execution_time_s=exec_time,
         stop_sequence_order=seq,
         road_path_nodes=nodes,
@@ -619,10 +674,8 @@ def run_constrained_local_search(
     best_seq = list(range(n))
     best_dist, best_time, _ = cost_matrix.evaluate_sequence(best_seq)
     best_disp = 0.0
-    best_obj = calculate_objective(
-        best_dist, baseline_dist_m, best_time, baseline_time_s,
-        best_disp, n, alpha, beta, gamma
-    )
+    best_obj = sequence_objective(best_seq, stops, cost_matrix, baseline_dist_m,
+                                  baseline_time_s, alpha, beta, gamma)
 
     improved = True
     iteration = 0
@@ -666,21 +719,11 @@ def run_constrained_local_search(
             if not feasible:
                 continue
 
-            c_dist, c_time, connected = cost_matrix.evaluate_sequence(cand)
-            if not connected:
-                continue
-
-            c_disp = calculate_demand_disruption(stops, cand)
-            c_obj = calculate_objective(
-                c_dist, baseline_dist_m, c_time, baseline_time_s,
-                c_disp, n, alpha, beta, gamma
-            )
-
-            sc_count = check_shortcut_stops(cand, cost_matrix, stops)
-            if sc_count > 0:
-                c_obj += sc_count * 0.1
-
-            if c_obj < best_obj - 1e-5:
+            c_obj = sequence_objective(cand, stops, cost_matrix, baseline_dist_m,
+                                       baseline_time_s, alpha, beta, gamma)
+            if c_obj < best_obj - 1e-10:
+                c_dist, c_time, _ = cost_matrix.evaluate_sequence(cand)
+                c_disp = calculate_demand_disruption(stops, cand)
                 best_seq = cand
                 best_obj = c_obj
                 best_dist = c_dist
@@ -689,6 +732,9 @@ def run_constrained_local_search(
                 improved = True
                 break
 
+    feasible, reason = is_candidate_feasible(
+        best_seq, stops, cost_matrix, baseline_dist_m, max_displacement, max_detour_ratio
+    )
     nodes, coords = cost_matrix.get_full_trajectory(best_seq)
     exec_time = time.time() - t0
 
@@ -697,14 +743,14 @@ def run_constrained_local_search(
         direction=stops[0].direction,
         chart_no=stops[0].chart_no,
         model="Constrained_Local_Search",
-        routing_status="Feasible" if best_obj <= 1.05 else "Constraint_Constrained",
+        routing_status="Feasible" if feasible else reason,
         distance_km=best_dist / 1000.0,
         estimated_travel_time_min=best_time / 60.0,
         stops_retained_pct=100.0,
         historical_boardings_retained=sum(s.boardings for s in stops),
         historical_alightings_retained=sum(s.alightings for s in stops),
         demand_weighted_disruption=best_disp,
-        historical_max_volume=max((s.volume for s in stops), default=0.0),
+        historical_max_volume=max(s.volume for s in stops) if all(math.isfinite(s.volume) for s in stops) else None,
         historical_daily_ridership=None,
         historical_load_factor=None,
         estimated_fleet_requirement=None,
@@ -763,6 +809,8 @@ class ConstrainedGeneticAlgorithm:
         self.max_detour_ratio = max_detour_ratio
         self.random_seed = random_seed
         self.rng = random.Random(random_seed)
+        validate_weights(alpha, beta, gamma)
+        self._cached_fitness = lru_cache(maxsize=4096)(self._fitness)
 
     def _fitness(self, seq: List[int]) -> float:
         """Evaluate fitness (lower objective is better). Infeasible returns inf."""
@@ -773,21 +821,8 @@ class ConstrainedGeneticAlgorithm:
         if not feasible:
             return float("inf")
 
-        dist_m, time_s, connected = self.cost_matrix.evaluate_sequence(seq)
-        if not connected or math.isinf(dist_m):
-            return float("inf")
-
-        disp = calculate_demand_disruption(self.stops, seq)
-        obj = calculate_objective(
-            dist_m, self.baseline_dist_m, time_s, self.baseline_time_s,
-            disp, self.n, self.alpha, self.beta, self.gamma
-        )
-
-        sc_count = check_shortcut_stops(seq, self.cost_matrix, self.stops)
-        if sc_count > 0:
-            obj += sc_count * 0.1
-
-        return obj
+        return sequence_objective(seq, self.stops, self.cost_matrix, self.baseline_dist_m,
+                                  self.baseline_time_s, self.alpha, self.beta, self.gamma)
 
     def _init_population(self) -> List[List[int]]:
         """Initialize population with baseline, small local swaps, and valid permutations."""
@@ -819,7 +854,7 @@ class ConstrainedGeneticAlgorithm:
         return pop
 
     def _tournament_select(self, pop: List[List[int]], fitnesses: List[float]) -> List[int]:
-        candidates = self.rng.sample(range(len(pop)), self.tournament_size)
+        candidates = self.rng.sample(range(len(pop)), min(len(pop), self.tournament_size))
         best_idx = min(candidates, key=lambda idx: fitnesses[idx])
         return pop[best_idx].copy()
 
@@ -900,7 +935,7 @@ class ConstrainedGeneticAlgorithm:
 
     def run(self) -> Tuple[List[int], float, List[float]]:
         pop = self._init_population()
-        fitnesses = [self._fitness(ind) for ind in pop]
+        fitnesses = [self._cached_fitness(tuple(ind)) for ind in pop]
         history: List[float] = []
 
         best_idx = int(np.argmin(fitnesses))
@@ -923,7 +958,7 @@ class ConstrainedGeneticAlgorithm:
                     new_pop.append(c2)
 
             pop = new_pop
-            fitnesses = [self._fitness(ind) for ind in pop]
+            fitnesses = [self._cached_fitness(tuple(ind)) for ind in pop]
 
             gen_best_idx = int(np.argmin(fitnesses))
             if fitnesses[gen_best_idx] < best_fit:
@@ -1013,12 +1048,16 @@ def optimize_route_chart(
     ga_seeds: List[int] = [42, 101, 2024, 7, 999],
     pop_size: int = 50,
     n_generations: int = 60,
+    corridor_m: Optional[float] = None,
+    stops: Optional[List[StopOccurrence]] = None,
 ) -> Tuple[List[RouteEvaluation], Dict[str, Any]]:
     """
     Executes Baseline, Constrained Local Search, and multi-seed Constrained GA
     for one directional chart.
     """
-    stops = extract_stop_occurrences(chart_df, road_net)
+    validate_weights(alpha, beta, gamma)
+    if stops is None:
+        stops = extract_stop_occurrences(chart_df, road_net)
     route_name = stops[0].route
     direction = stops[0].direction
     chart_no = stops[0].chart_no
@@ -1027,10 +1066,12 @@ def optimize_route_chart(
     print(f"OPTIMIZING ROUTE {route_name} {direction} (Chart {chart_no}) | {len(stops)} stops")
     print(f"=======================================================")
 
-    cost_matrix = RouteCostMatrix(stops, road_net)
+    cost_matrix = RouteCostMatrix(stops, road_net, corridor_m)
 
     # 1. Approach A: Baseline
-    base_eval = evaluate_baseline(stops, cost_matrix)
+    base_eval = evaluate_baseline(stops, cost_matrix, alpha, beta, gamma)
+    if base_eval.routing_status != "Feasible":
+        raise InfeasibleChart(base_eval.routing_status)
     print(f"[Approach A - Baseline] Distance: {base_eval.distance_km:.2f} km | "
           f"Est. Time: {base_eval.estimated_travel_time_min:.1f} min | Status: {base_eval.routing_status}")
 
@@ -1059,7 +1100,7 @@ def optimize_route_chart(
         ls_eval.modeled_operating_cost_rs = c_ls
 
     print(f"[Approach B - Local Search] Distance: {ls_eval.distance_km:.2f} km "
-          f"({((base_eval.distance_km - ls_eval.distance_km)/base_eval.distance_km)*100:+.2f}%) | "
+          f"({(1 - ls_eval.distance_km / base_eval.distance_km) * 100 if base_eval.distance_km else 0:+.2f}%) | "
           f"Disruption: {ls_eval.demand_weighted_disruption:.2f} | Obj: {ls_eval.objective_value:.4f}")
 
     # 3. Approach C: Constrained Genetic Algorithm across multiple random seeds
@@ -1083,7 +1124,11 @@ def optimize_route_chart(
         best_seq, best_obj, hist = ga.run()
         ga_histories.append(hist)
 
-        d_m, t_s, conn = cost_matrix.evaluate_sequence(best_seq)
+        d_m, t_s, _ = cost_matrix.evaluate_sequence(best_seq)
+        feasible, reason = is_candidate_feasible(
+            best_seq, stops, cost_matrix, base_eval.distance_km * 1000,
+            max_displacement, max_detour_ratio
+        )
         disp = calculate_demand_disruption(stops, best_seq)
         nodes, coords = cost_matrix.get_full_trajectory(best_seq)
         exec_time = time.time() - t_ga
@@ -1093,7 +1138,7 @@ def optimize_route_chart(
             direction=direction,
             chart_no=chart_no,
             model=f"Constrained_GA_seed{seed}",
-            routing_status="Feasible" if conn and best_obj <= 1.05 else "Fallback_Preserved",
+            routing_status="Feasible" if feasible else reason,
             distance_km=d_m / 1000.0,
             estimated_travel_time_min=t_s / 60.0,
             stops_retained_pct=100.0,
@@ -1139,7 +1184,7 @@ def optimize_route_chart(
     }
 
     print(f"[Approach C - GA Best] Distance: {best_ga.distance_km:.2f} km "
-          f"({((base_eval.distance_km - best_ga.distance_km)/base_eval.distance_km)*100:+.2f}%) | "
+          f"({(1 - best_ga.distance_km / base_eval.distance_km) * 100 if base_eval.distance_km else 0:+.2f}%) | "
           f"Disruption: {best_ga.demand_weighted_disruption:.2f} | Obj: {best_ga.objective_value:.4f}")
     print(f"                      Mean Obj: {stats['mean_objective']:.4f} (std: {stats['std_objective']:.4f}) | "
           f"Avg Runtime: {stats['mean_runtime_s']:.2f}s")
