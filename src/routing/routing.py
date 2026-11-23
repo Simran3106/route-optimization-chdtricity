@@ -17,11 +17,12 @@ Evaluates routes across:
 
 Primary dataset: data/passengerdata/chart_data/join_alightingsboardings_with_standard routes.CSV
 Secondary dataset: data/passengerdata/performance_routes_clean.csv
-Road network: data/roadnodes/chandigarh_road_network.graphml
+Road network: data/roadnodes/tricity_road_network.graphml
 """
 
 import argparse
 import json
+from functools import lru_cache
 import math
 import random
 import re
@@ -51,7 +52,8 @@ DEFAULT_SPEEDS_KMH: Dict[str, float] = {
     "living_street": 20.0,
     "unclassified": 25.0,
 }
-FALLBACK_SPEED_KMH = 25.0
+DEFAULT_GRAPHML = Path("data/roadnodes/tricity_road_network.graphml")
+DEFAULT_MAX_SNAP_M = 500.0
 DEFAULT_DWELL_TIME_SEC = 30.0  # 30 seconds dwell per intermediate stop
 DEFAULT_LAYOVER_RATIO = 0.15   # 15% terminal turnaround / layover buffer
 
@@ -132,58 +134,64 @@ def parse_wkt_linestring(geom_str: str) -> List[Tuple[float, float]]:
 class RoadNetwork:
     """Encapsulates the Chandigarh OSM road graph, stop snapping, and routing."""
 
-    def __init__(self, graphml_path: Path):
-        self.graphml_path = graphml_path
-        print(f"[RoadNetwork] Loading GraphML from {graphml_path}...")
-        t0 = time.time()
-        self.raw_graph: nx.MultiDiGraph = nx.read_graphml(graphml_path)
-        print(f"[RoadNetwork] Loaded {len(self.raw_graph.nodes)} nodes, "
-              f"{len(self.raw_graph.edges)} edges in {time.time() - t0:.2f}s")
-
-        # Extract largest strongly connected component to avoid sink / cul-de-sac traps
-        sccs = list(nx.strongly_connected_components(self.raw_graph))
-        self.main_scc = max(sccs, key=len)
-        print(f"[RoadNetwork] Main strongly connected component has {len(self.main_scc)} nodes "
-              f"({len(self.main_scc) / len(self.raw_graph.nodes) * 100:.1f}%)")
-
-        # Assign parsed lengths, speeds, and traversal times to graph edges
+    def __init__(self, graphml_path: Path = DEFAULT_GRAPHML, max_snap_m: float = DEFAULT_MAX_SNAP_M):
+        self.graphml_path = Path(graphml_path)
+        self.max_snap_m = max_snap_m
+        graph = nx.read_graphml(graphml_path, force_multigraph=True)
+        if not graph.is_directed():
+            raise ValueError("Road GraphML must be directed")
+        crs = str(graph.graph.get("crs", "epsg:4326")).lower()
+        if crs not in {"epsg:4326", "wgs84", "ogc:crs84"}:
+            raise ValueError(f"Unsupported road coordinate reference system: {crs}")
+        self.raw_graph = graph
         self._prepare_edge_attributes()
+        graph.remove_nodes_from(list(nx.isolates(graph)))
+        if not graph.number_of_edges():
+            raise ValueError("Road GraphML contains no usable drivable edges")
 
-        # Build coordinate arrays for fast nearest-node projection
-        self.node_list: List[str] = list(self.main_scc)
-        self.node_coords = np.array(
-            [[float(self.raw_graph.nodes[n]["y"]), float(self.raw_graph.nodes[n]["x"])]
-             for n in self.node_list],
-            dtype=np.float64,
-        )
+        self.node_list = list(graph)
+        try:
+            self.node_coords = np.array(
+                [(float(graph.nodes[n]["y"]), float(graph.nodes[n]["x"])) for n in self.node_list]
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("Road nodes require numeric WGS84 x/y coordinates") from exc
+        if not (np.abs(self.node_coords) <= [90, 180]).all():
+            raise ValueError("Road node coordinates fall outside WGS84 bounds")
+        self.main_scc = max(nx.strongly_connected_components(graph), key=len)
+        print(f"[RoadNetwork] {graphml_path}: {len(graph)} nodes, {graph.number_of_edges()} "
+              f"drivable directed edges, {nx.number_weakly_connected_components(graph)} weak components")
+        self.get_shortest_path = lru_cache(maxsize=8192)(self.get_shortest_path)
 
     def _prepare_edge_attributes(self):
-        """Ensure all edge lengths are floats and calculate travel times in seconds."""
-        for u, v, k, d in self.raw_graph.edges(keys=True, data=True):
+        """Keep usable directed edges and derive travel time from road class."""
+        unusable = []
+        for u, v, key, edge in self.raw_graph.edges(keys=True, data=True):
+            highway = re.findall(r"[a-z_]+", str(edge.get("highway", "")).lower())
+            access = set(re.findall(r"[a-z_]+", str(edge.get("access", "")).lower()))
+            if (not highway or any(kind not in DEFAULT_SPEEDS_KMH for kind in highway)
+                    or access & {"no", "private", "military", "permit"}):
+                unusable.append((u, v, key))
+                continue
             try:
-                length = float(d.get("length", 1.0))
+                length = float(edge.get("length", edge.get("length_m")))
             except (ValueError, TypeError):
-                length = 1.0
-            d["length_m"] = length
-
-            # Road class determination
-            hwy = d.get("highway", "unclassified")
-            if isinstance(hwy, list):
-                hwy = hwy[0]
-            elif isinstance(hwy, str) and hwy.startswith("["):
-                cleaned = re.sub(r"[\[\]'\" ]", "", hwy).split(",")
-                hwy = cleaned[0] if cleaned else "unclassified"
-
-            speed_kmh = DEFAULT_SPEEDS_KMH.get(str(hwy), FALLBACK_SPEED_KMH)
-            speed_ms = max(speed_kmh / 3.6, 1.0)
-            d["speed_ms"] = speed_ms
-            d["time_sec"] = length / speed_ms
+                length = math.nan
+            if not math.isfinite(length) or length <= 0:
+                unusable.append((u, v, key))
+                continue
+            speed_ms = min(DEFAULT_SPEEDS_KMH[kind] for kind in highway) / 3.6
+            edge["length_m"] = length
+            edge["time_sec"] = length / speed_ms
+        self.raw_graph.remove_edges_from(unusable)
 
     def snap_stop(self, lat: float, lon: float) -> Tuple[str, float]:
         """
         Snap a stop coordinate (lat, lon) to the nearest road-network node
-        in the strongly connected drivable component. Returns (osm_node_id, distance_in_meters).
+        across the usable directed road graph. Returns (osm_node_id, distance_in_meters).
         """
+        if not (abs(lat) <= 90 and abs(lon) <= 180):
+            raise ValueError("Invalid stop coordinates")
         lat_arr = self.node_coords[:, 0]
         lon_arr = self.node_coords[:, 1]
         d_lat = (lat_arr - lat) * 111139.0
@@ -197,6 +205,8 @@ class RoadNetwork:
         Compute shortest path from node u to v on length_m.
         Returns (distance_m, travel_time_sec, node_sequence, list_of_lat_lon_points).
         """
+        if u not in self.raw_graph or v not in self.raw_graph:
+            return math.inf, math.inf, [], []
         if u == v:
             lat = float(self.raw_graph.nodes[u]["y"])
             lon = float(self.raw_graph.nodes[u]["x"])
@@ -223,21 +233,16 @@ class RoadNetwork:
             total_length_m += best_edge.get("length_m", 0.0)
             total_time_sec += best_edge.get("time_sec", 0.0)
 
-            geom_str = best_edge.get("geometry")
-            if geom_str:
-                edge_pts = parse_wkt_linestring(geom_str)
-                if edge_pts:
-                    if not coords:
-                        coords.extend(edge_pts)
-                    else:
-                        coords.extend(edge_pts[1:])
-                    continue
-
             p1 = (float(self.raw_graph.nodes[n1]["y"]), float(self.raw_graph.nodes[n1]["x"]))
             p2 = (float(self.raw_graph.nodes[n2]["y"]), float(self.raw_graph.nodes[n2]["x"]))
-            if not coords:
-                coords.append(p1)
-            coords.append(p2)
+            edge_pts = parse_wkt_linestring(best_edge.get("geometry"))
+            if len(edge_pts) >= 2:
+                if math.dist(edge_pts[-1], p1) < math.dist(edge_pts[0], p1):
+                    edge_pts.reverse()
+                edge_pts[0], edge_pts[-1] = p1, p2
+            else:
+                edge_pts = [p1, p2]
+            coords.extend(edge_pts[1:] if coords else edge_pts)
 
         return total_length_m, total_time_sec, path_nodes, coords
 
@@ -1411,7 +1416,7 @@ def parse_args():
                         default="data/passengerdata/performance_routes_clean.csv",
                         help="Path to performance parameters CSV")
     parser.add_argument("--graphml", type=str,
-                        default="data/roadnodes/chandigarh_road_network.graphml",
+                        default=str(DEFAULT_GRAPHML),
                         help="Path to road network GraphML")
     parser.add_argument("--output-dir", type=str, default="outputs", help="Output directory")
 
