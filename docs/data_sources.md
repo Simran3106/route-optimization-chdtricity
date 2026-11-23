@@ -30,7 +30,7 @@ This document provides complete provenance, methodology descriptions, and biblio
     - `Volume` ($V_i$): On-board passenger occupancy (section load) departing stop occurrence $i$.
 - **Methodological Limitations & Usage Protocol**:
   - **Fixed Historical Benchmark**: The passenger records represent historical peak-hour trip samples, not continuous or real-time 2026 ridership.
-  - **No Inferred Zero Demand**: Recorded zero boardings reflect sample trip observations rather than permanent lack of public transit demand. Zero-demand stops are strictly preserved in all proposed route sequences.
+  - Recorded zeros are valid survey observations. Missing or malformed boardings and alightings leave chart-level demand-weighted fitness unavailable. Missing volume remains blank and makes the chart maximum unavailable. Stop occurrences with missing source IDs retain a blank ID.
   - **Section Load Invariance**: Observed section loads (`Volume`) reflect the specific sequence of stops in the historical sample. Because an origin–destination (OD) passenger interchange matrix is unavailable, passenger section loads cannot be transferred to reordered stop sequences. Volume is used strictly for descriptive characterization of baseline passenger activity.
 
 ---
@@ -41,8 +41,7 @@ This document provides complete provenance, methodology descriptions, and biblio
 - **Origin**: Operational performance audit compiled for 68 CTU local bus routes during the transport planning review.
 - **Attributes Utilized**:
   - `Route No`: Identifier for cross-referencing route records.
-  - `Morning Peak Headway` ($H$, minutes): Scheduled service interval during peak hours.
-  - `Afternoon Headway` (minutes): Off-peak service interval.
+  - `Morning Peak Headway` and `Afternoon Headway` are supplied without explicit units in the CSV header. Verify the source interval and shared directional meaning before enabling modeled fleet.
   - `Route Length (km)`: Historical administrative route length.
   - `Daily Ridership`: Total recorded daily passengers carried across the route.
   - `On road Fleet`: Historical number of operational buses allocated.
@@ -52,7 +51,9 @@ This document provides complete provenance, methodology descriptions, and biblio
   - `Load Factor` & `Operating Ratio`: Fleet efficiency and cost-recovery indicators.
 - **Methodological Usage & Scope Boundaries**:
   - The performance dataset is used **exclusively for post-optimization operational evaluation** (scenario fleet estimation and expenditure scaling). It is **not** used as an input to the route generation or stop sequencing algorithms.
-  - Route matching is strictly validated against chart route identifiers. Where operational parameters (such as headway or vehicle-km) are unavailable, metrics are reported as `N/A`.
+  - Match a single exact route identifier, including any variant suffix. Historical figures are reported as service-level values.
+  - The rate in rupees per vehicle-kilometre assumes expenditure and mileage cover the same reporting period. Positive route length and mileage at least as large as the administrative route length are required. Multiplying the rate by modeled directional kilometres yields a standardised cost for one traversal.
+  - A fleet scenario requires unique compatible UP and DOWN charts, matching reversed terminal IDs, and a verified common peak interval in minutes. The cycle uses both directional times plus 15% layover. Results appear on the UP row only. Missing or incompatible inputs leave scenario values blank.
 
 ---
 
@@ -70,17 +71,11 @@ This document provides complete provenance, methodology descriptions, and biblio
 
 ## 5. OpenStreetMap Road Network and OSMnx
 
-- **Source File**: `data/roadnodes/chandigarh_road_network.graphml`
-- **Network Extraction**:
-  - Extracted using **OSMnx** (`ox.graph_from_place("Chandigarh, India", network_type="drive")`).
-  - Tools & Documentation:
-    - OpenStreetMap: [https://www.openstreetmap.org/](https://www.openstreetmap.org/)
-    - OSMnx Library: [https://osmnx.readthedocs.io/](https://osmnx.readthedocs.io/)
-    - Overpass API: [https://overpass-api.de/](https://overpass-api.de/)
-- **Graph Characteristics**:
-  - Multi-directed graph (`MultiDiGraph`) consisting of **12,148 road nodes** and **31,166 directed road edges**.
-  - Strongly Connected Component: The primary component encompasses **11,960 nodes (98.5%)**, eliminating dead-end cul-de-sac and sink traps.
-  - Edge attributes include exact geodesic length (`length_m` in meters), functional highway classification (`highway`), one-way directionality (`oneway`), and detailed curvilinear alignment geometries (`geometry` in WKT format).
+- **Default file**. `data/roadnodes/tricity_road_network.graphml` covers Chandigarh, Mohali, and Panchkula. Graph metadata records a simplified WGS84 graph created with OSMnx 2.2.0 on 23 November 2026. The source has 54,469 nodes and 139,725 directed edges.
+- **Optional file**. `data/roadnodes/chandigarh_road_network.graphml` covers Chandigarh and can be selected with `--graphml`.
+- Both files store node longitude in `x`, latitude in `y`, edge lengths in metres in `length`, and optional WKT line geometry. Directed edge orientation preserves one-way links. The supported classes are trunk, primary, secondary and tertiary roads and their links, plus residential, living streets and unclassified roads. Explicitly restricted access links and invalid lengths are excluded.
+- Stop snapping uses all usable nodes, including nodes outside the largest strongly connected component. Disconnected directed legs are recorded as chart failures. The map uses the selected edge geometry in traversal order.
+- Sources and tools include [OpenStreetMap](https://www.openstreetmap.org/) and [OSMnx](https://osmnx.readthedocs.io/).
 
 ---
 

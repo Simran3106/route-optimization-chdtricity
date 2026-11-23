@@ -4,15 +4,15 @@
 
 This repository provides a complete, working geographical bus route optimization system for the Chandigarh Transport Undertaking (CTU) local bus network. The system evaluates and optimizes bus stop sequences and road alignments using historical boarding–alighting passenger data and the OpenStreetMap road network.
 
-Optimization is performed using a **demand-aware, corridor-constrained Genetic Algorithm (GA)** supported by Dijkstra shortest-path calculations on the directed road network, benchmarked against a **reconstructed original-sequence baseline** and a **constrained local search** model.
+Optimization is performed using a **demand-aware, constrained Genetic Algorithm (GA)** supported by Dijkstra shortest-path calculations on the directed road network, benchmarked against a **reconstructed original-sequence baseline** and a **constrained local search** model.
 
 ---
 
 ## Objectives
 
-1. **Geographical Stop Sequence Optimization**: Re-sequence intermediate bus stops to minimize road network distance and estimated traversal times while strictly preserving route terminals and corridor boundaries.
+1. **Geographical Stop Sequence Optimization**: Re-sequence intermediate bus stops to minimize road network distance and estimated traversal times while preserving route terminals and any configured corridor limit.
 2. **Demand Preservation**: Incorporate historical sampled passenger boardings and alightings into a sequence-disruption penalty to prevent disruptive deviations from high-demand passenger clusters.
-3. **Road-Network Feasibility**: Restrict all routing decisions to drivable, directed OpenStreetMap links, enforcing one-way constraints, avoiding disconnected road links, and preventing out-of-order shortcut traversals.
+3. **Road-Network Feasibility**: Restrict all routing decisions to drivable, directed OpenStreetMap links, enforcing one-way constraints, avoiding disconnected road links, and penalizing premature encounters with required stop nodes.
 4. **Operational Impact Evaluation**: Assess the consequences of proposed route alignments across road distance, travel time, passenger disruption, fleet requirements, and operational expenditure.
 
 ---
@@ -26,9 +26,9 @@ Optimization is performed using a **demand-aware, corridor-constrained Genetic A
 - **Role**: Serves as the immutable primary input for identifying existing routes, ordering stop sequences, geographic coordinate snapping, computing stop importance, evaluating demand disruption, and ensuring complete stop preservation.
 
 ### Road Network Graph
-- **Path**: `data/roadnodes/chandigarh_road_network.graphml`
-- **Scope**: Directed `MultiDiGraph` extracted from OpenStreetMap using OSMnx, comprising 12,148 nodes and 31,166 edges.
-- **Attributes**: Geodesic edge lengths (`length_m`), functional road classifications (`highway`), one-way directionality, and curvilinear road geometries (WKT `geometry`). The primary strongly connected component encompasses 11,960 nodes (98.5%), preventing cul-de-sac and dead-end traps during stop snapping.
+- **Default**. `data/roadnodes/tricity_road_network.graphml` covers Chandigarh, Mohali, and Panchkula.
+- **Optional**. `data/roadnodes/chandigarh_road_network.graphml` can be selected with `--graphml`.
+- Both files encode directed OpenStreetMap links, WGS84 node coordinates, metre lengths, road classes, and WKT geometry where available. The loader keeps supported roads with valid lengths and excludes links with explicit restricted access.
 
 ### Secondary Dataset: Route Performance Parameters
 - **Path**: `data/passengerdata/performance_routes_clean.csv`
@@ -40,7 +40,7 @@ Optimization is performed using a **demand-aware, corridor-constrained Genetic A
 
 ## Data Sources
 
-A complete description of data provenance, survey methodologies, and bibliographic citations is provided in [docs/data_sources.md](file:///c:/Users/hppav/OneDrive/Documents/VSCODE/route-optimization-chdtricity/docs/data_sources.md).
+A complete description of data provenance, survey methodologies, and bibliographic citations is provided in [docs/data_sources.md](docs/data_sources.md).
 
 Key sources include:
 - **CEPT Research and Development Foundation (CRDF)** / **Ministry of Housing and Urban Affairs (MoHUA)** historical public transit planning study.
@@ -61,15 +61,15 @@ The optimization pipeline implements three comparative models:
           │
           ├──> Approach B: Constrained Local Search (2-opt reversals, swaps, insertions)
           │
-          └──> Approach C: Corridor-Constrained Genetic Algorithm (Multi-seed GA + Dijkstra)
+          └──> Approach C: Constrained Genetic Algorithm (Multi-seed GA + Dijkstra)
 ```
 
 1. **Approach A — Reconstructed Original-Sequence Baseline**:
-   Stops are ordered by their historical `stop_order` and snapped to the nearest road network node in the primary strongly connected component. Consecutive stops are connected via Dijkstra shortest paths on the directed road network.
+   Stops are ordered by their historical `stop_order` and snapped to the nearest road network node on the selected usable directed graph. Consecutive stops are connected via Dijkstra shortest paths on the directed road network.
 2. **Approach B — Constrained Local Search**:
    An iterative first-improvement hill-climbing heuristic applying local adjacent swaps, short 2-opt subsequence reversals (length 2 to 3), and localized insertions within strict displacement limits.
-3. **Approach C — Demand-Aware Corridor-Constrained Genetic Algorithm**:
-   A population-based metaheuristic exploring candidate permutations under strict geographical and service constraints.
+3. **Approach C — Demand-Aware Constrained Genetic Algorithm**:
+   A population-based metaheuristic exploring feasible permutations using cached Dijkstra paths and stop-pair distance and time matrices.
 
 ---
 
@@ -92,17 +92,19 @@ Every candidate route must satisfy:
 7. Disconnected road segments avoided.
 8. Maximum sequence displacement limited ($|p_i^{new} - p_i^{old}| \le K_{\max}$, default $K_{\max} = 3$).
 9. Detour ratio bound ($D \le 1.25 \times D_{\text{baseline}}$).
-10. Shortcut penalty: detects and penalizes paths passing scheduled future stops out of order.
-11. Reconstructed original sequence retained as an elitist fallback candidate.
+10. When `--corridor-m` is supplied, every candidate road-geometry vertex must lie within that distance of a baseline road segment, using a local metric approximation.
+
+An inaccessible consecutive pair makes the chart infeasible. Multiple occurrences may share a snapped node, with zero driving distance between consecutive occurrences at that node. The snap warning threshold defaults to 500 m and can be changed with `--max-snap-m`. The baseline remains available to both optimizers when it satisfies the constraints.
 
 ### Fitness Function
 The multi-objective fitness minimizes normalized road distance, estimated travel time, and demand disruption:
-$$\min J = \alpha D_n + \beta T_n + \gamma P_n$$
+$$\min J = \alpha D_n + \beta T_n + \gamma P_n + 0.1S$$
 where:
 - $D_n = \frac{D}{D_{\text{baseline}}}$: Normalized road distance.
 - $T_n = \frac{T}{T_{\text{baseline}}}$: Normalized estimated travel time.
 - $P_n = \frac{P}{N - 1}$: Normalized demand-weighted sequence disruption.
-- $\alpha, \beta, \gamma \ge 0$: Configurable non-negative weights ($\alpha=0.5, \beta=0.2, \gamma=0.3$ by default).
+- $S$ counts distinct required road nodes first encountered inside a leg before a scheduled visit. Passing an already served node or sharing a leg endpoint incurs no penalty. The same rule applies to all three models.
+- $\alpha, \beta, \gamma \ge 0$: Configurable weights that sum to one ($\alpha=0.5, \beta=0.2, \gamma=0.3$ by default).
 
 ### Genetic Operators
 - **Selection**: Tournament selection (size $k = 3$).
@@ -119,12 +121,11 @@ where:
 2. **Estimated Travel Time ($T$, min)**: Road traversal time based on functional road-class speed limits (Trunk: 50 km/h, Primary: 45 km/h, Secondary: 40 km/h, Tertiary: 30 km/h, Residential: 25 km/h) plus a standardized dwell time of 30 seconds per intermediate stop.
 3. **Demand-Weighted Disruption ($P$)**:
    $$P = \frac{\sum_i w_i |p_i^{\text{new}} - p_i^{\text{old}}|}{\sum_i w_i}$$
-   where stop importance $w_i = B_i + A_i$. Measures displacement weighted by historical boarding and alighting activity.
-4. **Estimated Fleet Requirement ($F$)**:
-   $$F = \left\lceil \frac{C}{H} \right\rceil$$
-   where $C$ is the round-trip cycle time including layover buffer (15%) and $H$ is the peak headway from matched performance data.
-5. **Modeled Operating Cost Scenario ($C_{\text{scenario}}$, Rs)**:
-   $$c_{\text{km}} = \frac{\text{Total Expenditure}}{\text{Actual Vehicle-Km}}, \quad C_{\text{scenario}} = \text{Trips} \times D \times c_{\text{km}}$$
+   where stop importance $w_i = B_i + A_i$. Measures displacement weighted by historical boarding and alighting activity. Recorded zero demand is valid. Missing or malformed boarding or alighting values make the chart invalid for the weighted analysis. An all-zero chart uses mean unweighted displacement.
+4. **Modeled Round-Trip Fleet** uses $F=\lceil 1.15(T_{UP}+T_{DOWN})/H\rceil$. The 15% allowance represents terminal layover and turnaround. The estimate requires a unique pair with reversed matching terminal IDs and a verified shared peak interval $H$ in minutes. It appears once per route and model on the UP row. Enable it with `--verified-headway-minutes` after checking the source.
+5. **Modeled Cost per Directional Traversal** multiplies modeled road distance by historical expenditure divided by historical vehicle-kilometres. This allocation assumes a constant average cost per vehicle-kilometre and requires a unique exact route match and positive, compatible historical inputs. Historical route length is a plausibility check. The scenario uses no inferred number of trips.
+
+Distance and objective improvement use their respective baseline denominators and are reported in separate columns. Fleet and cost are operational scenarios evaluated after sequencing.
 
 ---
 
@@ -142,7 +143,8 @@ route-optimization-chdtricity/
 │   │   │   └── join_alightingsboardings_with_standard routes.CSV
 │   │   └── performance_routes_clean.csv
 │   └── roadnodes/
-│       └── chandigarh_road_network.graphml
+│       ├── chandigarh_road_network.graphml
+│       └── tricity_road_network.graphml
 ├── docs/
 │   └── data_sources.md
 ├── notebooks/
@@ -236,9 +238,9 @@ python -m tests.test_routing
 All commands are runnable from the project root directory.
 
 ### 1. Optimize a Specific Route and Direction
-To run the optimization for a single route-direction (e.g., Route 3 UP, which starts from Mauli Jagran and terminates at PGI):
+To run the optimization for a single route-direction such as Route 11 UP:
 ```bash
-python -m src.routing.routing --route 3 --direction UP
+python -m src.routing.routing --route 11 --direction UP
 ```
 This command runs:
 - **Approach A**: Reconstructed original-sequence road baseline.
@@ -246,23 +248,25 @@ This command runs:
 - **Approach C**: Constrained Genetic Algorithm across 5 random seeds (`42, 101, 2024, 7, 999`).
 - Generates all evaluation metrics, CSVs, GeoJSON paths, comparison figure, and Folium interactive map.
 
-### 2. Batch Optimize Representative CTU Routes
-To run batch optimization across all 5 representative routes (Route 3 UP, Route 11 UP, Route 17 UP, Route 18 UP, and Route 143 UP):
+### 2. Process All Directional Charts
+
 ```bash
 python -m src.routing.routing --all
+python -m src.routing.routing --chart 3 --graphml data/roadnodes/chandigarh_road_network.graphml
 ```
-Outputs are compiled into [outputs/route_comparison.csv](file:///c:/Users/hppav/OneDrive/Documents/VSCODE/route-optimization-chdtricity/outputs/route_comparison.csv).
+
+Run from the repository root. The default command discovers all 118 charts in the primary CSV. Use `--output-dir` to preserve previous results. Record the graph file, input CSVs, weights, constraints, population size, generations, and seeds with each experiment. The default GA runs 60 generations with a population of 50 for each of five fixed seeds.
 
 ### 3. Run Multi-Objective Sensitivity Analysis
 To evaluate how different objective weightings alter the optimal stop sequence (Distance-Focused vs. Balanced vs. Demand-Preservation-Focused):
 ```bash
-python -m src.routing.routing --route 3 --direction UP --sensitivity
+python -m src.routing.routing --route 11 --direction UP --sensitivity
 ```
 
 ### 4. Custom Parameter Configuration (Optional)
 GA parameters, objective weights, and displacement constraints can be customized via optional CLI flags:
 ```bash
-python -m src.routing.routing --route 3 --direction UP --alpha 0.6 --beta 0.2 --gamma 0.2 --max-displacement 2 --pop-size 60 --generations 80
+python -m src.routing.routing --route 11 --direction UP --alpha 0.6 --beta 0.2 --gamma 0.2 --max-displacement 2 --pop-size 60 --generations 80
 ```
 - `--alpha`: Weight for normalized road distance (default: `0.5`).
 - `--beta`: Weight for normalized estimated travel time (default: `0.2`).
@@ -293,38 +297,9 @@ python -m tests.test_routing
 
 ## Experimental Results
 
-The optimization models were evaluated across five representative directional charts covering varying route lengths, stop counts, and historical passenger activity levels.
+The default Tricity run discovered 118 directional charts and processed 87. The remaining 31 had a disconnected directed road leg after snapping. Local search and GA each improved the objective on 50 charts. Road distance decreased on 37 charts under local search and 38 under GA. These counts describe the reconstructed road-network scenarios.
 
-### Summary Evaluation Table
-
-| Route | Direction | Chart | Model | Distance (km) | Est. Time (min) | Disruption | Est. Fleet | Modeled Cost (Rs) | Objective | Status |
-|:---:|:---:|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **3** | UP | 1 | Reconstructed Baseline | 30.443 | 63.87 | 0.000 | 4 | 20,266.13 | 1.0000 | Connected |
-| **3** | UP | 1 | Constrained Local Search | 27.149 | 58.91 | 0.267 | 4 | 18,072.93 | 0.6354 | Feasible (-10.8%) |
-| **3** | UP | 1 | Constrained GA Best | 24.708 | 53.97 | 0.640 | 3 | 16,448.14 | 0.5868 | Feasible (-18.8%) |
-| **11** | UP | 3 | Reconstructed Baseline | 6.110 | 14.14 | 0.000 | 2 | 4,806.78 | 1.0000 | Connected |
-| **11** | UP | 3 | Constrained Local Search | 6.110 | 14.14 | 0.000 | 2 | 4,806.78 | 0.7000 | Optimal (0.0%) |
-| **11** | UP | 3 | Constrained GA Best | 6.110 | 14.14 | 0.000 | 2 | 4,806.78 | 0.7000 | Optimal (0.0%) |
-| **17** | UP | 5 | Reconstructed Baseline | 21.722 | 47.86 | 0.000 | 12 | 106,481.93 | 1.0000 | Connected |
-| **17** | UP | 5 | Constrained Local Search | 21.722 | 47.86 | 0.000 | 12 | 106,481.93 | 0.7000 | Optimal (0.0%) |
-| **17** | UP | 5 | Constrained GA Best | 21.722 | 47.86 | 0.000 | 12 | 106,481.93 | 0.7000 | Optimal (0.0%) |
-| **18** | UP | 7 | Reconstructed Baseline | 15.123 | 33.26 | 0.000 | 5 | 41,186.34 | 1.0000 | Connected |
-| **18** | UP | 7 | Constrained Local Search | 15.123 | 33.26 | 0.000 | 5 | 41,186.34 | 0.7000 | Optimal (0.0%) |
-| **18** | UP | 7 | Constrained GA Best | 15.123 | 33.26 | 0.000 | 5 | 41,186.34 | 0.7000 | Optimal (0.0%) |
-| **143** | UP | 15 | Reconstructed Baseline | 25.330 | 57.90 | 0.000 | 5 | 16,863.18 | 1.0000 | Connected |
-| **143** | UP | 15 | Constrained Local Search | 25.330 | 57.90 | 0.000 | 5 | 16,863.18 | 0.7000 | Optimal (0.0%) |
-| **143** | UP | 15 | Constrained GA Best | 25.330 | 57.90 | 0.000 | 5 | 16,863.18 | 0.7000 | Optimal (0.0%) |
-
-### Key Experimental Insights
-1. **Geometric Redundancies vs. Corridor Linearity**:
-   - For **Route 3 UP**, the existing stop sequence contains circuitous detours around the Railway Crossing, Grain Market, and General Hospital corridors. The Constrained GA identified a re-sequencing that reduces road distance by **18.84%** (from 30.44 km to 24.71 km) with modest disruption ($P = 0.64$).
-   - For **Routes 11, 17, 18, and 143**, the baseline sequences are already topologically aligned along linear arterial corridors (Madhya Marg, Jan Marg, Dakshin Marg). Under strict neighborhood and displacement constraints, no re-ordering can reduce road distance without violating corridor bounds. The algorithm correctly retains the baseline sequence as the optimal configuration.
-2. **Sensitivity Analysis Findings (Route 3 UP)**:
-   - **Distance-Focused** ($\alpha=0.8, \beta=0.1, \gamma=0.1$): GA selects the 24.71 km sequence (Objective: 0.7378).
-   - **Balanced** ($\alpha=0.5, \beta=0.2, \gamma=0.3$): GA selects the 24.71 km sequence (Objective: 0.5868).
-   - **Demand-Preservation-Focused** ($\alpha=0.2, \beta=0.1, \gamma=0.7$): GA prioritizes low passenger displacement and selects the 27.15 km sequence with minimal disruption ($P = 0.27$, Objective: 0.2823).
-
----
+The five outputs include the model comparison CSV, stop sequence CSV, road-path GeoJSON, interactive map, and comparison figure. `chart_processing.csv` records every discovered chart, statuses, snap warnings, and model-specific improvement flags. `chart_failures.csv` identifies infeasible charts, invalid source rows, and runtime errors. An unchanged result means neither heuristic improved the baseline objective within the tested search.
 
 ## Limitations
 
@@ -332,10 +307,10 @@ The optimization models were evaluated across five representative directional ch
 2. **Lack of Origin–Destination (OD) Matrix**: The dataset does not provide individual passenger trip origin-destination pairs. Consequently, passenger travel time savings and route section loads cannot be predicted for reordered sequences.
 3. **Reconstructed Road Paths**: Baseline trajectories represent Dijkstra shortest paths connecting historical stop sequences on OpenStreetMap, which may differ from historical bus turning choices or operational diversions.
 4. **Estimated Traversal Speeds**: Edge traversal times are derived from functional road-class speed guidelines rather than live traffic telemetry.
-5. **Scenario Fleet and Cost Estimations**: Fleet sizing assumes uniform headway and symmetric return cycles. Operating costs assume linear scaling of average expenditure per vehicle-kilometre, which includes fixed depot and administrative overheads.
+5. **Scenario Fleet and Cost Estimations**: Fleet scenarios assume a shared verified headway and use separately estimated directional times. The cost rate may include fixed overheads, so modeled per-traversal costs do not establish realized savings.
 
 ---
 
 ## References
 
-For detailed source descriptions and complete bibliographic citations, refer to [docs/data_sources.md](file:///c:/Users/hppav/OneDrive/Documents/VSCODE/route-optimization-chdtricity/docs/data_sources.md).
+For detailed source descriptions and complete bibliographic citations, refer to [docs/data_sources.md](docs/data_sources.md).

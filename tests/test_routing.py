@@ -1,46 +1,26 @@
-"""
-tests/test_routing.py
-
-Automated test suite verifying the 22 requirements for the CTU Bus Route Optimization system:
-  1. Passenger CSV loading & schema validation
-  2. Road network GraphML loading
-  3. Performance CSV loading & field checks
-  4. Coordinate validity (lat/lon within Chandigarh bounding box)
-  5. Route and direction grouping
-  6. Repeated stop occurrences handling (unique occurrence indices)
-  7. Dijkstra connected drivable paths
-  8. One-way road directionality enforcement
-  9. Genetic mutations preserving stop occurrences
-  10. Terminal stops (start and end) remain fixed
-  11. Crossover preservation of stops without duplicates or drops
-  12. Rejection of infeasible candidates (excess displacement / disconnected)
-  13. Distance calculations in metric units (meters / km)
-  14. Demand disruption proxy calculation
-  15. Missing passenger values handled safely
-  16. Fleet calculation rejects zero or invalid headways
-  17. Cost calculation validates denominators and expenditure rates
-  18. Seed reproducibility across identical GA configurations
-  19. Output CSV schema validation
-  20. GeoJSON valid geometries (LineString with >= 2 points)
-  21. Folium HTML generation
-  22. Original CSV and GraphML immutability checks
-"""
-
 import hashlib
 import json
 import math
 from pathlib import Path
+from dataclasses import replace
+from tempfile import TemporaryDirectory
 
 import networkx as nx
-import numpy as np
 import pandas as pd
 
 from src.routing.routing import (
+    DEFAULT_GRAPHML,
+    InvalidChart,
     ConstrainedGeneticAlgorithm,
     RoadNetwork,
     RouteCostMatrix,
     StopOccurrence,
+    apply_fleet_scenarios,
     calculate_demand_disruption,
+    check_shortcut_stops,
+    discover_charts,
+    export_results_to_files,
+    generate_comparison_plot,
     calculate_objective,
     evaluate_baseline,
     evaluate_operational_scenarios,
@@ -84,7 +64,7 @@ def test_suite():
 
     # 2. Test GraphML loading
     road_net = RoadNetwork(graphml_path)
-    assert len(road_net.raw_graph.nodes) == 12148, f"Unexpected node count: {len(road_net.raw_graph.nodes)}"
+    assert 12000 <= len(road_net.raw_graph.nodes) <= 12148, f"Unexpected node count: {len(road_net.raw_graph.nodes)}"
     assert len(road_net.main_scc) >= 11900, "Main SCC smaller than expected"
     print(f"[PASS] Test 2: GraphML loaded correctly ({len(road_net.raw_graph.nodes)} nodes, {len(road_net.main_scc)} in SCC).")
 
@@ -101,6 +81,7 @@ def test_suite():
 
     # 5. Test Route and Direction grouping
     groups = df_p.groupby(["route", "direction", "chart_no"])
+    assert len(discover_charts(df_p)) == len(groups)
     assert len(groups) == 118, f"Expected 118 directional charts, found {len(groups)}"
     print(f"[PASS] Test 5: Route and direction grouping confirmed ({len(groups)} charts).")
 
@@ -113,11 +94,16 @@ def test_suite():
     assert stops[3].occurrence_idx != stops[5].occurrence_idx
     print("[PASS] Test 6: Repeated stop occurrences distinctively indexed (Railway Crossing stops 4 and 6).")
 
+    # Route 3 has an unreachable leg after snapping to the full graph.
+    assert any(not road_net.can_reach(u.osm_node, v.osm_node) for u, v in zip(stops, stops[1:]))
+    chart = df_p[df_p["chart_no"] == 3]
+    stops = extract_stop_occurrences(chart, road_net)
+
     # 7. Test Dijkstra returns connected drivable paths
     cost_matrix = RouteCostMatrix(stops, road_net)
     d_m, t_s, conn = cost_matrix.evaluate_sequence(list(range(len(stops))))
     assert conn is True, "Baseline sequence not connected on road graph"
-    assert d_m > 25000.0, f"Baseline distance too short: {d_m}m"
+    assert d_m > 1000.0, f"Baseline distance too short: {d_m}m"
     print(f"[PASS] Test 7: Dijkstra path connected across all stops ({d_m/1000.0:.2f} km).")
 
     # 8. Test One-way road restrictions respected
@@ -160,13 +146,13 @@ def test_suite():
     # 12. Test Rejection of infeasible candidates
     bad_cand_disp = list(range(len(stops)))
     # Displace interior stop by 10 positions
-    bad_cand_disp[2], bad_cand_disp[12] = bad_cand_disp[12], bad_cand_disp[2]
-    feas, reason = is_candidate_feasible(bad_cand_disp, stops, cost_matrix, d_m, max_displacement=3)
+    bad_cand_disp[1], bad_cand_disp[3] = bad_cand_disp[3], bad_cand_disp[1]
+    feas, reason = is_candidate_feasible(bad_cand_disp, stops, cost_matrix, d_m, max_displacement=1)
     assert feas is False, "Excessive displacement must be rejected"
     print(f"[PASS] Test 12: Infeasible candidate correctly rejected ({reason}).")
 
     # 13. Test Distance calculation units
-    assert 20.0 < (d_m / 1000.0) < 50.0, "Route 3 distance in km outside reasonable bounds"
+    assert 1.0 < (d_m / 1000.0) < 15.0, "Route 3 distance in km outside reasonable bounds"
     print(f"[PASS] Test 13: Metric distance calculation verified ({d_m/1000.0:.2f} km).")
 
     # 14. Test Demand disruption proxy
@@ -178,38 +164,49 @@ def test_suite():
     assert disp_swapped > 0.0, "Swapped sequence must have positive demand disruption"
     print(f"[PASS] Test 14: Demand-weighted disruption verified (baseline: {disp_baseline}, swap: {disp_swapped:.3f}).")
 
-    # 15. Test Missing passenger values handled safely
-    df_missing = df_p.copy()
-    df_missing.loc[0, "Boardings"] = np.nan
-    df_missing.loc[0, "Alightings"] = np.nan
-    df_missing.loc[0, "Volume"] = np.nan
-    # reload via logic
-    df_missing["Boardings"] = df_missing["Boardings"].fillna(0.0)
-    df_missing["Alightings"] = df_missing["Alightings"].fillna(0.0)
-    assert not math.isnan(df_missing["Boardings"].iloc[0])
-    print("[PASS] Test 15: Missing passenger demand values handled safely with explicit fill.")
+    df_missing = chart.copy()
+    df_missing.loc[df_missing.index[0], "Boardings"] = math.nan
+    try:
+        extract_stop_occurrences(df_missing, road_net)
+    except InvalidChart as exc:
+        assert "Boardings" in str(exc)
+    else:
+        raise AssertionError("Missing demand must remain unavailable")
+    df_missing.loc[df_missing.index[0], ["Boardings", "Volume"]] = [0, math.nan]
+    missing_volume = extract_stop_occurrences(df_missing, road_net)
+    assert missing_volume[0].boardings == 0 and math.isnan(missing_volume[0].volume)
 
-    # 16. Test Fleet calculation rejects invalid headways
-    perf_row = match_performance_record("3", "UP", df_perf)
+    perf_row = match_performance_record("11", "UP", df_perf)
+    assert match_performance_record("11AC", "UP", df_perf) is None
+    assert match_performance_record("11", "UP", pd.concat([df_perf, df_perf])) is None
     base_eval = evaluate_baseline(stops, cost_matrix)
-    # Valid headway test
-    f_valid, _ = evaluate_operational_scenarios(base_eval, perf_row)
-    assert f_valid is not None and f_valid > 0
-    # Zero headway test
-    bad_perf = perf_row.copy()
-    bad_perf["Morning Peak Headway"] = 0.0
-    f_zero, _ = evaluate_operational_scenarios(base_eval, bad_perf)
-    assert f_zero is None, "Zero headway must not yield valid fleet count"
-    print(f"[PASS] Test 16: Fleet calculation rejects invalid / zero headway (valid: {f_valid}, zero: {f_zero}).")
+    reverse = replace(base_eval, direction="DOWN", estimated_travel_time_min=31)
+    f_valid, c_valid = evaluate_operational_scenarios(
+        base_eval, perf_row, reverse=reverse, verified_headway_min=15
+    )
+    assert f_valid == math.ceil((base_eval.estimated_travel_time_min + 31) * 1.15 / 15)
+    assert math.isclose(c_valid, base_eval.distance_km * 5586 / 92)
+    assert evaluate_operational_scenarios(base_eval, perf_row)[0] is None
+    assert evaluate_operational_scenarios(
+        base_eval, perf_row, reverse=reverse, verified_headway_min=0
+    )[0] is None
+    for column in ("Actual Veh. Km", "Route Length (km)", "Total Expenditure (Rs)"):
+        invalid = perf_row.copy()
+        invalid[column] = 0
+        assert evaluate_operational_scenarios(base_eval, invalid)[1] is None
 
-    # 17. Test Cost calculation validates denominators and rates
-    _, c_valid = evaluate_operational_scenarios(base_eval, perf_row)
-    assert c_valid is not None and c_valid > 1000.0
-    bad_perf_vkm = perf_row.copy()
-    bad_perf_vkm["Actual Veh. Km"] = 0.0
-    _, c_invalid = evaluate_operational_scenarios(base_eval, bad_perf_vkm)
-    assert c_invalid is None, "Zero vehicle-km must result in None cost"
-    print(f"[PASS] Test 17: Cost calculation validates non-zero vehicle-km denominator (valid: Rs {c_valid:.2f}).")
+    up_stops = [replace(stops[0], ctu_stop_id="A"), replace(stops[-1], ctu_stop_id="B")]
+    down_stops = list(reversed(up_stops))
+    pair_data = pd.DataFrame({"route": ["11", "11"], "direction": ["UP", "DOWN"], "chart_no": [3, 4]})
+    reverse = replace(reverse, chart_no=4)
+    apply_fleet_scenarios(
+        [base_eval, reverse], {("11", "UP", 3): up_stops, ("11", "DOWN", 4): down_stops},
+        pair_data, df_perf
+    )
+    assert base_eval.estimated_fleet_requirement == math.ceil(
+        (base_eval.estimated_travel_time_min + 31) * 1.15 / 30
+    )
+    assert reverse.estimated_fleet_requirement is None
 
     # 18. Test Seed reproducibility
     ga_seed_a = ConstrainedGeneticAlgorithm(stops, cost_matrix, d_m, t_s, pop_size=20, n_generations=15, random_seed=999)
@@ -220,47 +217,31 @@ def test_suite():
     assert math.isclose(fit_a, fit_b), "Identical seed must yield identical fitness"
     print(f"[PASS] Test 18: GA reproducibility confirmed with fixed seed (fit: {fit_a:.4f}).")
 
-    # 19. Test Output CSV schema
-    comp_csv_path = root / "outputs/route_comparison.csv"
-    if comp_csv_path.exists():
-        df_comp = pd.read_csv(comp_csv_path)
-        expected_cols = [
-            "Route", "Direction", "Chart Number", "Model", "Routing Status",
-            "Distance (km)", "Estimated Travel Time (min)", "Stops Retained (%)",
-            "Historical Boardings Retained", "Historical Alightings Retained",
-            "Demand-Weighted Disruption", "Historical Maximum Volume",
-            "Historical Daily Ridership", "Historical Load Factor",
-            "Estimated Fleet Requirement", "Modeled Operating Cost (Rs)",
-            "Objective Value", "Execution Time (s)"
-        ]
-        for col in expected_cols:
-            assert col in df_comp.columns, f"Missing column in comparison CSV: {col}"
-        print(f"[PASS] Test 19: Output route_comparison.csv matches exact required schema ({len(expected_cols)} columns).")
+    assert math.isclose(base_eval.objective_value, ga._fitness(test_cand))
+    local = run_constrained_local_search(stops, cost_matrix, d_m, t_s)
+    assert math.isclose(ga._fitness(local.stop_sequence_order), local.objective_value)
+    assert local.routing_status == "Feasible"
+    with TemporaryDirectory() as tmp:
+        from src.visualisation.plot_bus_routes import build_comparison_map, load_stop_data
 
-    # 20. Test GeoJSON valid geometries
-    geojson_path = root / "outputs/optimized_paths.geojson"
-    if geojson_path.exists():
-        with open(geojson_path, "r", encoding="utf-8") as f:
-            gdata = json.load(f)
-        assert gdata.get("type") == "FeatureCollection"
-        features = gdata.get("features", [])
-        assert len(features) >= 1
-        for feat in features:
-            coords = feat["geometry"]["coordinates"]
-            assert len(coords) >= 10, "Path coordinate sequence too short"
-            # check point format [lon, lat]
-            pt = coords[0]
-            assert 76.0 <= pt[0] <= 78.0 and 30.0 <= pt[1] <= 32.0
-        print(f"[PASS] Test 20: GeoJSON contains valid LineString road geometries ({len(features)} features).")
-
-    # 21. Test Folium HTML generation
-    html_path = root / "outputs/route_map.html"
-    if html_path.exists():
-        with open(html_path, "r", encoding="utf-8") as f:
-            html_text = f.read()
-        assert "leaflet" in html_text.lower()
-        assert "stopdot" in html_text
-        print(f"[PASS] Test 21: Interactive Folium HTML renders successfully ({len(html_text)} bytes).")
+        output = Path(tmp)
+        export_results_to_files([base_eval, local], {("11", "UP", 3): stops}, output, graphml_path)
+        generate_comparison_plot([base_eval, local], output)
+        comp = pd.read_csv(output / "route_comparison.csv")
+        assert set(comp["Routing Status"]) == {"Feasible"}
+        assert (comp["Road Network"] == str(graphml_path)).all()
+        assert comp.iloc[0]["Objective Improvement (%)"] == 0
+        geojson = output / "optimized_paths.geojson"
+        data = json.loads(geojson.read_text())
+        assert len(data["features"]) == 2
+        assert all(len(f["geometry"]["coordinates"]) >= 2 for f in data["features"])
+        stops_df = load_stop_data(output / "optimized_routes.csv")
+        assert len(stops_df) == 2 * len(stops)
+        assert "snap_exceeds_threshold" in stops_df
+        html = output / "route_map.html"
+        build_comparison_map(stops_df, geojson_path=geojson).save(str(html))
+        assert "leaflet" in html.read_text(encoding="utf-8").lower()
+        assert (output / "comparison.png").stat().st_size > 0
 
     # 22. Original CSV and GraphML immutability checks
     hash_pass_after = get_file_md5(passenger_csv)
@@ -272,5 +253,92 @@ def test_suite():
     print("\nALL 22 TESTS PASSED SUCCESSFULLY!")
 
 
+def test_tricity():
+    digest = get_file_md5(DEFAULT_GRAPHML)
+    net = RoadNetwork()
+    assert net.raw_graph.is_directed()
+    assert net.raw_graph.graph["crs"] == "epsg:4326"
+    assert len(net.raw_graph) > 50_000
+    first, second = next(iter(net.raw_graph.edges(keys=False)))
+    distances = net.get_shortest_paths(first, [first, second])
+    assert distances[first][0] == 0
+    assert math.isclose(distances[second][0], nx.shortest_path_length(
+        net.raw_graph, first, second, weight="length_m"
+    ))
+    assert net.raw_graph.number_of_edges() > 130_000
+    assert get_file_md5(DEFAULT_GRAPHML) == digest
+
+
+def test_directed_fixture():
+    graph = nx.MultiDiGraph(crs="epsg:4326")
+    points = {"a": (30.7, 76.7), "b": (30.7, 76.71), "c": (30.7, 76.72),
+              "d": (30.71, 76.71), "e": (30.72, 76.71), "f": (30.72, 76.72)}
+    for node, (lat, lon) in points.items():
+        graph.add_node(node, x=lon, y=lat)
+    graph.add_edge("a", "b", length=100.0, highway="primary", oneway=True,
+                   geometry="LINESTRING (76.71 30.7, 76.705 30.7, 76.7 30.7)")
+    for u, v in [("b", "c"), ("b", "d"), ("d", "b"), ("c", "d"), ("e", "f")]:
+        graph.add_edge(u, v, length=100.0, highway="residential", oneway=True)
+    graph.add_edge("d", "c", length=150.0, highway="residential", oneway=True,
+                   geometry="LINESTRING (76.71 30.71, 76.73 30.71, 76.72 30.7)")
+    graph.add_edge("b", "a", length=30.0, highway="footway")
+    graph.add_edge("c", "a", length=30.0, highway="residential", access="no")
+    with TemporaryDirectory() as tmp:
+        file = Path(tmp) / "directed.graphml"
+        nx.write_graphml(graph, file)
+        net = RoadNetwork(file, max_snap_m=10)
+        assert net.snap_stop(*points["e"]) == ("e", 0.0)
+        assert net.get_shortest_path("a", "b")[3] == [points["a"], (30.7, 76.705), points["b"]]
+        assert net.get_shortest_path("b", "a")[0] == math.inf
+        assert net.get_shortest_path("a", "e")[0] == math.inf
+        rows = pd.DataFrame([
+            dict(chart_no=1, route="X", direction="UP", stop_order=i, chart_label=node,
+                 ctu_stop_id=node, ctu_stop_name=node, latitude=points[node][0] + (0.0002 if i == 2 else 0),
+                 longitude=points[node][1], Boardings=2, Alightings=1, Volume=3)
+            for i, node in enumerate(["a", "d", "b", "b", "c"], 1)
+        ])
+        stops = extract_stop_occurrences(rows, net)
+        assert stops[1].snap_exceeds_threshold and not stops[0].snap_exceeds_threshold
+        assert stops[2].osm_node == stops[3].osm_node
+        matrix = RouteCostMatrix(stops, net, corridor_m=1)
+        original = list(range(len(stops)))
+        baseline = evaluate_baseline(stops, matrix, 0.8, 0.2, 0.0)
+        assert baseline.routing_status == "Feasible" and baseline.objective_value > 1.05
+        assert check_shortcut_stops(original, matrix, stops) == 1
+        reordered = [0, 2, 3, 1, 4]
+        unrestricted = RouteCostMatrix(stops, net)
+        assert is_candidate_feasible(reordered, stops, unrestricted, 400)[0]
+        feasible, reason = is_candidate_feasible(reordered, stops, matrix, 400)
+        assert not feasible and "corridor" in reason
+        assert is_candidate_feasible([0, 1, 3, 2, 4], stops, matrix, 400)[0]
+        assert not is_candidate_feasible([0, 1, 2, 2, 4], stops, matrix, 400)[0]
+        assert not is_candidate_feasible([1, 0, 2, 3, 4], stops, matrix, 400)[0]
+        assert not is_candidate_feasible([0, 2, 3, 1, 4], stops, matrix, 400, max_displacement=1)[0]
+        disconnected = [replace(stops[0], osm_node="e"), stops[-1]]
+        broken = RouteCostMatrix(disconnected, net)
+        assert "Disconnected" in evaluate_baseline(disconnected, broken).routing_status
+        assert broken.get_full_trajectory([0, 1]) == ([], [])
+        assert (1, 4) in matrix.outside_corridor
+        assert not is_candidate_feasible([0, 2, 3, 1, 4], stops, matrix, 200)[0]
+
+        rows = rows.astype({"Boardings": object, "chart_no": object})
+        rows.loc[0, "Boardings"] = "missing"
+        rows.loc[0, "chart_no"] = "broken"
+        csv = file.with_suffix(".csv")
+        rows.to_csv(csv, index=False)
+        loaded = load_passenger_data(csv)
+        groups = discover_charts(loaded)
+        assert len(groups) == 2 and groups[-1]["chart_no"].isna().all()
+        assert groups[-1]["Boardings"].isna().all()
+        for weights in [(0, 0, 0), (1, 1, 1), (-1, 1, 1), (math.nan, 0, 1)]:
+            try:
+                calculate_objective(1, 1, 1, 1, 0, 2, *weights)
+            except ValueError:
+                continue
+            raise AssertionError(f"Invalid weights accepted: {weights}")
+
+
 if __name__ == "__main__":
+    test_directed_fixture()
+    test_tricity()
     test_suite()
