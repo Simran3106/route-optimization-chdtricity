@@ -106,6 +106,10 @@ class RouteEvaluation:
     objective_value: float
     execution_time_s: float
     stop_sequence_order: List[int] = field(default_factory=list)
+    historical_route_length_km: Optional[float] = None
+    historical_on_road_fleet: Optional[float] = None
+    historical_vehicle_km: Optional[float] = None
+    historical_expenditure_rs: Optional[float] = None
     road_path_nodes: List[str] = field(default_factory=list)
     road_coordinates: List[Tuple[float, float]] = field(default_factory=list)  # (lat, lon)
 
@@ -978,58 +982,72 @@ def match_performance_record(
     direction: str,
     df_perf: pd.DataFrame,
 ) -> Optional[pd.Series]:
-    """
-    Standardize and match route identifier in performance_routes_clean.csv.
-    Checks exact matches, strips 'AC' suffixes if needed, and returns matched row or None.
-    """
-    if df_perf.empty:
+    """Match an exact, unique route identifier and an explicit direction if present."""
+    if "Route_No_Std" not in df_perf:
         return None
+    match = df_perf[df_perf["Route_No_Std"].eq(route.strip().upper())]
+    if "Direction" in match:
+        match = match[match["Direction"].str.strip().str.upper().eq(direction)]
+    return match.iloc[0] if len(match) == 1 else None
 
-    route_clean = str(route).strip().upper()
-    match = df_perf[df_perf["Route_No_Std"] == route_clean]
-    if not match.empty:
-        return match.iloc[0]
 
-    if route_clean.endswith("AC"):
-        base_route = route_clean[:-2]
-        match_base = df_perf[df_perf["Route_No_Std"] == base_route]
-        if not match_base.empty:
-            return match_base.iloc[0]
-
-    return None
+def performance_number(row: pd.Series, field: str) -> Optional[float]:
+    value = pd.to_numeric(row.get(field), errors="coerce")
+    return float(value) if pd.notna(value) and math.isfinite(value) and value >= 0 else None
 
 
 def evaluate_operational_scenarios(
     eval_record: RouteEvaluation,
     perf_row: Optional[pd.Series],
     layover_ratio: float = DEFAULT_LAYOVER_RATIO,
+    *,
+    reverse: Optional[RouteEvaluation] = None,
+    verified_headway_min: Optional[float] = None,
 ) -> Tuple[Optional[int], Optional[float]]:
-    """
-    Evaluate fleet requirements and operating costs as consequence of geographical route changes.
-        F = ceil(C / H)
-        Operating Cost = Actual_Veh_Km * (Total_Expenditure / Actual_Veh_Km)
-    """
-    if perf_row is None:
+    """Model cycle fleet and the allocated cost of one directional traversal."""
+    if perf_row is None or eval_record.routing_status != "Feasible":
         return None, None
+    fleet = None
+    if (reverse is not None and reverse.routing_status == "Feasible"
+            and reverse.route == eval_record.route and reverse.direction != eval_record.direction
+            and reverse.model == eval_record.model and verified_headway_min is not None
+            and math.isfinite(verified_headway_min) and verified_headway_min > 0
+            and math.isfinite(layover_ratio) and layover_ratio >= 0):
+        times = (eval_record.estimated_travel_time_min, reverse.estimated_travel_time_min)
+        if all(math.isfinite(t) and t > 0 for t in times):
+            fleet = math.ceil(sum(times) * (1 + layover_ratio) / verified_headway_min)
 
-    peak_headway = float(perf_row.get("Morning Peak Headway", 0.0))
-    fleet_req = None
-    if peak_headway > 0:
-        one_way_time_min = eval_record.estimated_travel_time_min
-        round_trip_cycle_min = 2.0 * one_way_time_min * (1.0 + layover_ratio)
-        fleet_req = int(math.ceil(round_trip_cycle_min / peak_headway))
+    vehicle_km = performance_number(perf_row, "Actual Veh. Km")
+    expenditure = performance_number(perf_row, "Total Expenditure (Rs)")
+    route_length = performance_number(perf_row, "Route Length (km)")
+    distance = eval_record.distance_km
+    cost = None
+    if (route_length and vehicle_km and vehicle_km >= route_length and expenditure
+            and math.isfinite(distance) and distance > 0):
+        cost = distance * expenditure / vehicle_km
+    return fleet, cost
 
-    actual_vkm = float(perf_row.get("Actual Veh. Km", 0.0))
-    total_exp = float(perf_row.get("Total Expenditure (Rs)", 0.0))
-    modeled_cost = None
 
-    if actual_vkm > 0 and total_exp > 0:
-        c_km = total_exp / actual_vkm
-        hist_route_len = float(perf_row.get("Route Length (km)", 0.0))
-        trips = (actual_vkm / hist_route_len) if hist_route_len > 0 else 1.0
-        modeled_cost = trips * eval_record.distance_km * c_km
-
-    return fleet_req, modeled_cost
+def apply_fleet_scenarios(evaluations, stops_by_chart, passenger_data, performance_data):
+    """Record a cycle once per model for a unique, terminal-compatible UP/DOWN pair."""
+    chart_counts = passenger_data.groupby(["route", "direction"])["chart_no"].nunique()
+    by_service = {(r.route, r.direction, r.model): r for r in evaluations}
+    for up in evaluations:
+        if up.direction != "UP" or any(chart_counts.get((up.route, d), 0) != 1 for d in ("UP", "DOWN")):
+            continue
+        down = by_service.get((up.route, "DOWN", up.model))
+        perf = match_performance_record(up.route, "UP", performance_data)
+        if down is None or perf is None or "Direction" in perf:
+            continue
+        up_stops = stops_by_chart[(up.route, up.direction, up.chart_no)]
+        down_stops = stops_by_chart[(down.route, down.direction, down.chart_no)]
+        terminals = (up_stops[0].ctu_stop_id, up_stops[-1].ctu_stop_id)
+        if not all(terminals) or terminals != (down_stops[-1].ctu_stop_id, down_stops[0].ctu_stop_id):
+            continue
+        headway = performance_number(perf, "Morning Peak Headway")
+        up.estimated_fleet_requirement, _ = evaluate_operational_scenarios(
+            up, perf, reverse=down, verified_headway_min=headway
+        )
 
 
 # =============================================================================
@@ -1076,13 +1094,6 @@ def optimize_route_chart(
           f"Est. Time: {base_eval.estimated_travel_time_min:.1f} min | Status: {base_eval.routing_status}")
 
     perf_row = match_performance_record(route_name, direction, df_perf)
-    if perf_row is not None:
-        base_eval.historical_daily_ridership = float(perf_row.get("Daily Ridership", 0.0))
-        base_eval.historical_load_factor = float(perf_row.get("Load Factor", 0.0))
-        f_base, c_base = evaluate_operational_scenarios(base_eval, perf_row)
-        base_eval.estimated_fleet_requirement = f_base
-        base_eval.modeled_operating_cost_rs = c_base
-
     # 2. Approach B: Local Search
     ls_eval = run_constrained_local_search(
         stops, cost_matrix,
@@ -1092,13 +1103,6 @@ def optimize_route_chart(
         max_displacement=max_displacement,
         max_detour_ratio=max_detour_ratio,
     )
-    if perf_row is not None:
-        ls_eval.historical_daily_ridership = base_eval.historical_daily_ridership
-        ls_eval.historical_load_factor = base_eval.historical_load_factor
-        f_ls, c_ls = evaluate_operational_scenarios(ls_eval, perf_row)
-        ls_eval.estimated_fleet_requirement = f_ls
-        ls_eval.modeled_operating_cost_rs = c_ls
-
     print(f"[Approach B - Local Search] Distance: {ls_eval.distance_km:.2f} km "
           f"({(1 - ls_eval.distance_km / base_eval.distance_km) * 100 if base_eval.distance_km else 0:+.2f}%) | "
           f"Disruption: {ls_eval.demand_weighted_disruption:.2f} | Obj: {ls_eval.objective_value:.4f}")
@@ -1156,11 +1160,6 @@ def optimize_route_chart(
             road_path_nodes=nodes,
             road_coordinates=coords,
         )
-        if perf_row is not None:
-            f_ga, c_ga = evaluate_operational_scenarios(eval_record, perf_row)
-            eval_record.estimated_fleet_requirement = f_ga
-            eval_record.modeled_operating_cost_rs = c_ga
-
         ga_evaluations.append(eval_record)
 
     # Pick overall best GA candidate
@@ -1190,6 +1189,19 @@ def optimize_route_chart(
           f"Avg Runtime: {stats['mean_runtime_s']:.2f}s")
 
     all_results = [base_eval, ls_eval, best_ga]
+    if perf_row is not None:
+        fields = {
+            "historical_daily_ridership": "Daily Ridership",
+            "historical_load_factor": "Load Factor",
+            "historical_route_length_km": "Route Length (km)",
+            "historical_on_road_fleet": "On road Fleet",
+            "historical_vehicle_km": "Actual Veh. Km",
+            "historical_expenditure_rs": "Total Expenditure (Rs)",
+        }
+        for result in all_results:
+            for attr, column in fields.items():
+                setattr(result, attr, performance_number(perf_row, column))
+            _, result.modeled_operating_cost_rs = evaluate_operational_scenarios(result, perf_row)
     return all_results, stats
 
 
