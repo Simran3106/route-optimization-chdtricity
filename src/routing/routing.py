@@ -57,6 +57,9 @@ DEFAULT_SPEEDS_KMH: Dict[str, float] = {
 }
 DEFAULT_GRAPHML = Path("data/roadnodes/tricity_road_network.graphml")
 DEFAULT_MAX_SNAP_M = 500.0
+MAX_ALTERNATIVE_NODES = 8
+DISTANCE_TOL_KM = 1e-6
+OBJECTIVE_TOL = 1e-8
 DEFAULT_DWELL_TIME_SEC = 30.0  # 30 seconds dwell per intermediate stop
 DEFAULT_LAYOVER_RATIO = 0.15   # 15% terminal turnaround / layover buffer
 
@@ -85,6 +88,9 @@ class StopOccurrence:
     osm_node: Optional[str] = None
     snap_distance_m: float = 0.0
     snap_exceeds_threshold: bool = False
+    original_osm_node: Optional[str] = None
+    original_snap_distance_m: Optional[float] = None
+    snap_reassignment_reason: str = ""
 
 
 @dataclass
@@ -113,6 +119,9 @@ class RouteEvaluation:
     historical_on_road_fleet: Optional[float] = None
     historical_vehicle_km: Optional[float] = None
     historical_expenditure_rs: Optional[float] = None
+    ga_all_seeds_time_s: Optional[float] = None
+    ga_selected_seed: Optional[int] = None
+    objective_components: Dict[str, float] = field(default_factory=dict)
     road_path_nodes: List[str] = field(default_factory=list)
     road_coordinates: List[Tuple[float, float]] = field(default_factory=list)  # (lat, lon)
 
@@ -216,13 +225,18 @@ class RoadNetwork:
         """
         if not (abs(lat) <= 90 and abs(lon) <= 180):
             raise ValueError("Invalid stop coordinates")
-        lat_arr = self.node_coords[:, 0]
-        lon_arr = self.node_coords[:, 1]
-        d_lat = (lat_arr - lat) * 111139.0
-        d_lon = (lon_arr - lon) * 111139.0 * math.cos(math.radians(lat))
-        dists = np.hypot(d_lat, d_lon)
-        best_idx = int(np.argmin(dists))
-        return self.node_list[best_idx], float(dists[best_idx])
+        return self.nearby_nodes(lat, lon, 1)[0]
+
+    def nearby_nodes(self, lat, lon, count, max_distance=math.inf):
+        scale = [111139.0, 111139.0 * math.cos(math.radians(lat))]
+        offsets = (self.node_coords - [lat, lon]) * scale
+        distances = np.hypot(offsets[:, 0], offsets[:, 1])
+        if count == 1 and math.isinf(max_distance):
+            nearest = int(distances.argmin())
+            return [(self.node_list[nearest], float(distances[nearest]))]
+        nearby = np.flatnonzero(distances <= max_distance)
+        ranked = nearby[np.argsort(distances[nearby], kind="stable")[:count]]
+        return [(self.node_list[i], float(distances[i])) for i in ranked]
 
     def get_shortest_path(self, u: str, v: str) -> Tuple[float, float, List[str], List[Tuple[float, float]]]:
         """
@@ -403,10 +417,60 @@ def extract_stop_occurrences(df: pd.DataFrame, road_net: RoadNetwork) -> List[St
             importance=b + a,
             osm_node=node_id,
             snap_distance_m=snap_dist,
+            original_osm_node=node_id,
+            original_snap_distance_m=snap_dist,
             snap_exceeds_threshold=snap_dist > road_net.max_snap_m,
         )
         stops.append(stop)
     return stops
+
+
+def disconnected_legs(stops, road_net):
+    return [(i, i + 1) for i in range(len(stops) - 1)
+            if not road_net.can_reach(stops[i].osm_node, stops[i + 1].osm_node)]
+
+
+def repair_stop_snaps(stops, road_net):
+    """Find the minimum additional snap distance across a complete directed sequence."""
+    bad_legs = disconnected_legs(stops, road_net)
+    if not bad_legs:
+        return
+    # Include adjacent occurrences so a repair can preserve incoming and outgoing access
+    # around a cluster, including repeated visits to the same nearest node.
+    affected = {index for i, j in bad_legs
+                for index in range(max(0, i - 1), min(len(stops), j + 2))}
+    layers = []
+    for i, stop in enumerate(stops):
+        original = (stop.osm_node, stop.snap_distance_m)
+        options = [original]
+        if i in affected:
+            options.extend((node, distance) for node, distance in road_net.nearby_nodes(
+                stop.latitude, stop.longitude, MAX_ALTERNATIVE_NODES, road_net.max_snap_m
+            ) if node != stop.osm_node)
+        if i == 0:
+            layers.append({node: (distance - stop.snap_distance_m, None, distance)
+                           for node, distance in options})
+            continue
+        previous = layers[-1]
+        layer = {}
+        for node, distance in options:
+            reachable = [prior for prior in previous if road_net.can_reach(prior, node)]
+            if reachable:
+                best = min(reachable, key=lambda prior: previous[prior][0])
+                layer[node] = (previous[best][0] + distance - stop.snap_distance_m, best, distance)
+        layers.append(layer)
+        if not layer:
+            return
+
+    chosen = min(layers[-1], key=lambda node: layers[-1][node][0])
+    for stop, layer in zip(reversed(stops), reversed(layers)):
+        _, prior, distance = layer[chosen]
+        if stop.osm_node != chosen:
+            stop.osm_node = chosen
+            stop.snap_distance_m = distance
+            stop.snap_exceeds_threshold = distance > road_net.max_snap_m
+            stop.snap_reassignment_reason = "Minimum added snap distance with full directed historical connectivity"
+        chosen = prior
 
 
 # =============================================================================
@@ -438,24 +502,36 @@ class RouteCostMatrix:
                 self._check_corridor(reference, corridor_m)
 
     def _check_corridor(self, reference, corridor_m):
-        """Check candidate geometry vertices against baseline road segments in local metres."""
+        """Certify each road segment lies within the union of baseline segment buffers."""
         scale = np.array([111139.0, 111139.0 * math.cos(math.radians(reference[0][0]))])
         points = (np.asarray(reference) - reference[0]) * scale
         starts = points[:-1] if len(points) > 1 else points
         vectors = np.diff(points, axis=0) if len(points) > 1 else np.zeros_like(points)
         squares = np.sum(vectors ** 2, axis=1)
         denominator = np.where(squares > 0, squares, 1)
-        point_cache = {}
+
+        @lru_cache(maxsize=8192)
+        def containing_buffers(coord):
+            offsets = np.asarray(coord) - starts
+            fraction = np.clip(np.sum(offsets * vectors, axis=1) / denominator, 0, 1)
+            residual = offsets - fraction[:, None] * vectors
+            return np.sum(residual ** 2, axis=1) <= corridor_m ** 2 + 1e-12
+
+        @lru_cache(maxsize=8192)
+        def segment_covered(first, last, depth=0):
+            left, right = containing_buffers(first), containing_buffers(last)
+            # A segment buffer is convex, so common membership certifies the whole subsegment.
+            if (left & right).any():
+                return True
+            if depth == 12 or not left.any() or not right.any():
+                return False
+            middle = tuple((a + b) / 2 for a, b in zip(first, last))
+            return segment_covered(first, middle, depth + 1) and segment_covered(middle, last, depth + 1)
+
         for pair, coords in self.path_coords_cache.items():
-            for coord in coords:
-                if coord not in point_cache:
-                    offsets = (np.asarray(coord) - reference[0]) * scale - starts
-                    fraction = np.clip(np.sum(offsets * vectors, axis=1) / denominator, 0, 1)
-                    residual = offsets - fraction[:, None] * vectors
-                    point_cache[coord] = np.min(np.sum(residual ** 2, axis=1)) > corridor_m ** 2 + 1e-8
-                if point_cache[coord]:
-                    self.outside_corridor.add(pair)
-                    break
+            local = list(map(tuple, (np.asarray(coords).reshape(-1, 2) - reference[0]) * scale))
+            if any(not segment_covered(a, b) for a, b in zip(local, local[1:])):
+                self.outside_corridor.add(pair)
 
     def _precompute(self):
         nodes = [stop.osm_node for stop in self.stops]
@@ -575,16 +651,21 @@ def calculate_objective(
         T_n = time / baseline_time
         P_n = disruption / (n_stops - 1)
     """
+    return sum(objective_components(distance_m, baseline_dist_m, travel_time_sec,
+                                    baseline_time_sec, disruption, n_stops, alpha, beta, gamma).values())
+
+
+def objective_components(distance, baseline_distance, travel_time, baseline_time,
+                         disruption, n_stops, alpha, beta, gamma, shortcuts=0):
     validate_weights(alpha, beta, gamma)
-    if not all(map(math.isfinite, (distance_m, baseline_dist_m, travel_time_sec, baseline_time_sec))):
-        return math.inf
-
-    d_n = distance_m / baseline_dist_m if baseline_dist_m else 1.0
-    t_n = travel_time_sec / baseline_time_sec if baseline_time_sec else 1.0
-    max_disp = max(n_stops - 1, 1)
-    p_n = disruption / max_disp
-
-    return alpha * d_n + beta * t_n + gamma * p_n
+    if not all(map(math.isfinite, (distance, baseline_distance, travel_time, baseline_time))):
+        return {"Distance Component": math.inf}
+    return {
+        "Distance Component": alpha * (distance / baseline_distance if baseline_distance else 1.0),
+        "Travel Time Component": beta * (travel_time / baseline_time if baseline_time else 1.0),
+        "Disruption Component": gamma * disruption / max(n_stops - 1, 1),
+        "Shortcut Penalty": 0.1 * shortcuts,
+    }
 
 
 def check_shortcut_stops(
@@ -593,7 +674,7 @@ def check_shortcut_stops(
     stops: List[StopOccurrence],
 ) -> int:
     """
-    Critical feasibility check: Detects if the shortest drivable road path between
+    Detects if the shortest drivable road path between
     two scheduled consecutive stops passes through another required stop node out of order.
     Returns the count of out-of-order shortcut violations.
     """
@@ -612,9 +693,9 @@ def sequence_objective(seq, stops, cost_matrix, baseline_dist_m, baseline_time_s
     if not connected:
         return math.inf
     disruption = calculate_demand_disruption(stops, seq)
-    return (calculate_objective(distance, baseline_dist_m, travel_time, baseline_time_s,
-                                disruption, len(stops), alpha, beta, gamma)
-            + 0.1 * check_shortcut_stops(seq, cost_matrix, stops))
+    return sum(objective_components(distance, baseline_dist_m, travel_time, baseline_time_s,
+                                    disruption, len(stops), alpha, beta, gamma,
+                                    check_shortcut_stops(seq, cost_matrix, stops)).values())
 
 
 def is_candidate_feasible(
@@ -1133,12 +1214,17 @@ def optimize_route_chart(
     print(f"OPTIMIZING ROUTE {route_name} {direction} (Chart {chart_no}) | {len(stops)} stops")
     print(f"=======================================================")
 
-    for first, second in zip(stops, stops[1:]):
-        if not road_net.can_reach(first.osm_node, second.osm_node):
-            raise InfeasibleChart(
-                f"Disconnected directed leg from stop order {first.original_order} ({first.osm_node}) "
-                f"to {second.original_order} ({second.osm_node})"
-            )
+    repair_stop_snaps(stops, road_net)
+    bad_legs = disconnected_legs(stops, road_net)
+    if bad_legs:
+        i, j = bad_legs[0]
+        first, second = stops[i], stops[j]
+        raise InfeasibleChart(
+            f"No complete directed assignment within the alternative snap search. "
+            f"First failed leg stop {first.original_order} ({first.osm_node}, {first.snap_distance_m:.1f} m) "
+            f"to {second.original_order} ({second.osm_node}, {second.snap_distance_m:.1f} m). "
+            f"{len(bad_legs)} disconnected legs; alternative radius {road_net.max_snap_m:g} m."
+        )
     cost_matrix = RouteCostMatrix(stops, road_net, corridor_m)
 
     # 1. Approach A: Baseline
@@ -1166,8 +1252,9 @@ def optimize_route_chart(
     ga_evaluations: List[RouteEvaluation] = []
     ga_histories: List[List[float]] = []
 
+    ga_start = time.perf_counter()
     for seed in ga_seeds:
-        t_ga = time.time()
+        t_ga = time.perf_counter()
         ga = ConstrainedGeneticAlgorithm(
             stops=stops,
             cost_matrix=cost_matrix,
@@ -1190,7 +1277,7 @@ def optimize_route_chart(
         )
         disp = calculate_demand_disruption(stops, best_seq)
         nodes, coords = cost_matrix.get_full_trajectory(best_seq)
-        exec_time = time.time() - t_ga
+        exec_time = time.perf_counter() - t_ga
 
         eval_record = RouteEvaluation(
             route=route_name,
@@ -1211,6 +1298,7 @@ def optimize_route_chart(
             modeled_operating_cost_rs=None,
             objective_value=best_obj,
             execution_time_s=exec_time,
+            ga_selected_seed=seed,
             stop_sequence_order=best_seq,
             road_path_nodes=nodes,
             road_coordinates=coords,
@@ -1220,6 +1308,7 @@ def optimize_route_chart(
     # Pick overall best GA candidate
     best_ga = min(ga_evaluations, key=lambda r: r.objective_value)
     best_ga.model = "Constrained_GA_Best"
+    best_ga.ga_all_seeds_time_s = time.perf_counter() - ga_start
 
     # GA multi-seed statistics
     ga_objs = [r.objective_value for r in ga_evaluations]
@@ -1257,6 +1346,13 @@ def optimize_route_chart(
             for attr, column in fields.items():
                 setattr(result, attr, performance_number(perf_row, column))
             _, result.modeled_operating_cost_rs = evaluate_operational_scenarios(result, perf_row)
+    for result in all_results:
+        distance, travel_time, _ = cost_matrix.evaluate_sequence(result.stop_sequence_order)
+        result.objective_components = objective_components(
+            distance, base_eval.distance_km * 1000, travel_time, base_eval.estimated_travel_time_min * 60,
+            result.demand_weighted_disruption, len(stops), alpha, beta, gamma,
+            check_shortcut_stops(result.stop_sequence_order, cost_matrix, stops),
+        )
     return all_results, stats
 
 
@@ -1294,7 +1390,9 @@ def export_results_to_files(
             "Road Network": graph_source,
             "Distance Improvement (%)": improvement_pct(baseline.distance_km, r.distance_km) if baseline else None,
             "Objective Improvement (%)": improvement_pct(baseline.objective_value, r.objective_value) if baseline else None,
-            "Distance (km)": round(r.distance_km, 3) if r.distance_km is not None else None,
+            "Distance (km)": r.distance_km,
+            "Estimated Travel Time Improvement (%)": improvement_pct(
+                baseline.estimated_travel_time_min, r.estimated_travel_time_min) if baseline else None,
             "Estimated Travel Time (min)": round(r.estimated_travel_time_min, 2) if r.estimated_travel_time_min is not None else None,
             "Stops Retained (%)": r.stops_retained_pct,
             "Historical Boardings Retained": r.historical_boardings_retained,
@@ -1309,7 +1407,10 @@ def export_results_to_files(
             "Historical Expenditure (Rs)": r.historical_expenditure_rs,
             "Modeled Round-Trip Fleet Requirement": r.estimated_fleet_requirement,
             "Modeled Operating Cost per Traversal (Rs)": round(r.modeled_operating_cost_rs, 2) if r.modeled_operating_cost_rs is not None else None,
-            "Objective Value": round(r.objective_value, 4),
+            "Objective Value": r.objective_value,
+            **r.objective_components,
+            "GA Total Across Seeds (s)": r.ga_all_seeds_time_s,
+            "GA Selected Seed": r.ga_selected_seed,
             "Execution Time (s)": round(r.execution_time_s, 3),
         })
     comp_df = pd.DataFrame(rows)
@@ -1344,6 +1445,9 @@ def export_results_to_files(
                 "Alightings": s.alightings,
                 "Volume": s.volume,
                 "osm_node": s.osm_node,
+                "original_osm_node": s.original_osm_node,
+                "original_snap_distance_m": s.original_snap_distance_m,
+                "snap_reassignment_reason": s.snap_reassignment_reason,
                 "snap_distance_m": round(s.snap_distance_m, 2),
                 "snap_exceeds_threshold": s.snap_exceeds_threshold,
                 "road_network": graph_source,
@@ -1366,6 +1470,7 @@ def export_results_to_files(
                 "chart_no": r.chart_no,
                 "model": r.model,
                 "road_network": graph_source,
+                "road_path_nodes": r.road_path_nodes,
                 "distance_km": round(r.distance_km, 3),
                 "estimated_travel_time_min": round(r.estimated_travel_time_min, 2),
                 "demand_weighted_disruption": round(r.demand_weighted_disruption, 3),
@@ -1389,147 +1494,122 @@ def export_results_to_files(
     print(f"[Export] Saved GeoJSON paths -> {geojson_path}")
 
 
-def generate_comparison_plot(
-    evaluations: List[RouteEvaluation],
-    output_dir: Path,
-):
-    """
-    Generates comparison.png.
-    If <= 8 routes: compares Distance, Time, and Disruption side-by-side.
-    If > 8 routes (full network): plots improvement distribution, Pareto trade-off,
-    and top-performing route distance reductions.
-    """
-    output_dir.mkdir(parents=True, exist_ok=True)
-    df = pd.DataFrame([asdict(r) for r in evaluations])
+MODEL_NAMES = {
+    "baseline": "Reconstructed_Baseline",
+    "local_search": "Constrained_Local_Search",
+    "ga": "Constrained_GA_Best",
+}
+COMPARISON_METRICS = {
+    "distance": ("distance_km", DISTANCE_TOL_KM),
+    "objective": ("objective_value", OBJECTIVE_TOL),
+}
+
+
+def compare_algorithms(df):
+    """Use paired charts and signed differences, with one tolerance per metric."""
+    models = {key: df[df.model.eq(model)].set_index("chart_no")
+              for key, model in MODEL_NAMES.items()}
+    baseline = models["baseline"]
+    report = {}
+    for key in ("local_search", "ga"):
+        candidate = models[key].reindex(baseline.index)
+        metrics = {}
+        for label, (column, tolerance) in COMPARISON_METRICS.items():
+            delta = baseline[column] - candidate[column]
+            percent = delta.where(delta.abs() > tolerance, 0) / baseline[column].where(baseline[column] > 0) * 100
+            metrics[label] = {
+                "mean_improvement_pct": float(percent.mean()) if percent.notna().any() else None,
+                "median_improvement_pct": float(percent.median()) if percent.notna().any() else None,
+                "improved": int((delta > tolerance).sum()),
+                "unchanged": int((delta.abs() <= tolerance).sum()),
+                "worsened": int((delta < -tolerance).sum()),
+                "worsened_charts": delta.index[delta < -tolerance].tolist(),
+                "top_charts": {str(chart): float(value) for chart, value in percent[delta > tolerance].nlargest(10).items()},
+            }
+        report[key] = metrics
+    for key, frame in models.items():
+        report.setdefault(key, {})["execution_time_s"] = {
+            "mean": float(frame.execution_time_s.mean()),
+            "median": float(frame.execution_time_s.median()),
+        }
+    total = models["ga"].ga_all_seeds_time_s.dropna()
+    if not total.empty:
+        report["ga"]["all_seeds_time_s"] = {"mean": float(total.mean()),
+                                            "median": float(total.median()), "sum": float(total.sum())}
+
+    paired = {}
+    for label, (column, tolerance) in COMPARISON_METRICS.items():
+        delta = models["local_search"][column] - models["ga"][column]
+        paired[label] = {
+            "ga_wins": int((delta > tolerance).sum()),
+            "ties": int((delta.abs() <= tolerance).sum()),
+            "ga_losses": int((delta < -tolerance).sum()),
+            "ga_no_advantage_charts": delta.index[delta <= tolerance].tolist(),
+            "ga_loss_charts": delta.index[delta < -tolerance].tolist(),
+        }
+    report["paired"] = paired
+    return report
+
+
+def generate_comparison_plot(evaluations, output_dir, processing=None):
+    """Summarize coverage, paired performance, and reductions in one figure."""
+    df = pd.DataFrame([asdict(result) for result in evaluations])
     if df.empty:
         return
-
-    df = df[df["model"].isin(["Reconstructed_Baseline", "Constrained_Local_Search", "Constrained_GA_Best"])]
-    charts = df["chart_no"].unique()
-
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
-
-    if len(charts) <= 8:
-        # Pilot / Single-route mode: 3 bar charts
-        models = ["Reconstructed_Baseline", "Constrained_Local_Search", "Constrained_GA_Best"]
-        labels = ["Baseline", "Local Search", "Constrained GA"]
-        colors = ["#7f7f7f", "#ff7f0e", "#2ca02c"]
-
-        x = np.arange(len(charts))
-        width = 0.25
-
-        # 1. Distance
-        for idx, (m, lbl, col) in enumerate(zip(models, labels, colors)):
-            vals = []
-            for c_id in charts:
-                sub = df[(df["chart_no"] == c_id) & (df["model"] == m)]
-                vals.append(sub["distance_km"].values[0] if not sub.empty else 0.0)
-            axes[0].bar(x + (idx - 1) * width, vals, width=width, label=lbl, color=col)
-
-        axes[0].set_title("Road Network Distance (km)", fontsize=11, fontweight="bold")
-        axes[0].set_xticks(x)
-        axes[0].set_xticklabels([f"Ch-{c}" for c in charts])
-        axes[0].set_ylabel("Distance (km)")
-        axes[0].grid(axis="y", linestyle="--", alpha=0.5)
-
-        # 2. Time
-        for idx, (m, lbl, col) in enumerate(zip(models, labels, colors)):
-            vals = []
-            for c_id in charts:
-                sub = df[(df["chart_no"] == c_id) & (df["model"] == m)]
-                vals.append(sub["estimated_travel_time_min"].values[0] if not sub.empty else 0.0)
-            axes[1].bar(x + (idx - 1) * width, vals, width=width, label=lbl, color=col)
-
-        axes[1].set_title("Estimated Travel Time (min)", fontsize=11, fontweight="bold")
-        axes[1].set_xticks(x)
-        axes[1].set_xticklabels([f"Ch-{c}" for c in charts])
-        axes[1].set_ylabel("Minutes")
-        axes[1].grid(axis="y", linestyle="--", alpha=0.5)
-
-        # 3. Disruption
-        for idx, (m, lbl, col) in enumerate(zip(models, labels, colors)):
-            vals = []
-            for c_id in charts:
-                sub = df[(df["chart_no"] == c_id) & (df["model"] == m)]
-                vals.append(sub["demand_weighted_disruption"].values[0] if not sub.empty else 0.0)
-            axes[2].bar(x + (idx - 1) * width, vals, width=width, label=lbl, color=col)
-
-        axes[2].set_title("Demand-Weighted Disruption", fontsize=11, fontweight="bold")
-        axes[2].set_xticks(x)
-        axes[2].set_xticklabels([f"Ch-{c}" for c in charts])
-        axes[2].set_ylabel("Weighted Stop Displacement")
-        axes[2].grid(axis="y", linestyle="--", alpha=0.5)
-        axes[2].legend(loc="upper right")
-
+    metrics = compare_algorithms(df)
+    fig, axes = plt.subplots(2, 2, figsize=(13, 8), layout="constrained")
+    fig.suptitle("CTU Tricity reconstructed route comparison")
+    if processing is not None:
+        statuses = pd.Series([row.get("objective_outcome") or row["status"] for row in processing])
+        counts = statuses.value_counts().reindex(
+            ["improved", "unchanged", "infeasible", "invalid_data", "runtime_error"], fill_value=0
+        )
+        axes[0, 0].bar(["Improved", "Unchanged", "Disconnected", "Invalid", "Error"],
+                       counts, color=["#23734d", "#64748b", "#a5481c", "#a5481c", "#a5481c"])
+        axes[0, 0].bar_label(axes[0, 0].containers[0], padding=2)
+        axes[0, 0].set_ylim(0, max(counts) * 1.17 + 1)
+        axes[0, 0].set_title(f"Chart outcomes ({len(statuses)} discovered)")
+        axes[0, 0].set_ylabel("Directional charts")
     else:
-        # Full-dataset network mode (>8 charts)
-        # Compute improvements per chart
-        chart_data = []
-        for c_id in charts:
-            sub_b = df[(df["chart_no"] == c_id) & (df["model"] == "Reconstructed_Baseline")]
-            sub_ga = df[(df["chart_no"] == c_id) & (df["model"] == "Constrained_GA_Best")]
-            sub_ls = df[(df["chart_no"] == c_id) & (df["model"] == "Constrained_Local_Search")]
-            if not sub_b.empty and not sub_ga.empty:
-                b_dist = sub_b["distance_km"].values[0]
-                ga_dist = sub_ga["distance_km"].values[0]
-                ls_dist = sub_ls["distance_km"].values[0] if not sub_ls.empty else b_dist
-                r_name = sub_b["route"].values[0]
-                r_dir = sub_b["direction"].values[0]
-                imp_pct = ((b_dist - ga_dist) / b_dist) * 100.0 if b_dist > 0 else 0.0
-                disp = sub_ga["demand_weighted_disruption"].values[0]
-                chart_data.append({
-                    "chart_no": c_id, "route": r_name, "direction": r_dir,
-                    "b_dist": b_dist, "ls_dist": ls_dist, "ga_dist": ga_dist,
-                    "imp_pct": imp_pct, "disruption": disp
-                })
+        axes[0, 0].axis("off")
 
-        cdf = pd.DataFrame(chart_data)
+    baseline = df[df.model.eq(MODEL_NAMES["baseline"])].set_index("chart_no")
+    for key, label, color in [("local_search", "Local search", "#e47c27"), ("ga", "GA", "#248c5a")]:
+        candidate = df[df.model.eq(MODEL_NAMES[key])].set_index("chart_no")
+        pct = (baseline.distance_km - candidate.distance_km) / baseline.distance_km.where(baseline.distance_km > 0) * 100
+        axes[0, 1].hist(pct.dropna(), bins=np.arange(-30, 31, 2), alpha=.55, label=label, color=color)
+    axes[0, 1].set(title="Distribution of distance reductions", xlabel="Reduction (%)", ylabel="Charts")
+    axes[0, 1].legend()
 
-        # Panel 1: Histogram of Distance Improvement Percentage
-        axes[0].hist(cdf["imp_pct"], bins=15, color="#1f77b4", edgecolor="black", alpha=0.8)
-        axes[0].axvline(0, color="gray", linestyle="--", linewidth=1.5)
-        axes[0].set_title(f"Distance Reduction Distribution (N={len(cdf)})", fontsize=11, fontweight="bold")
-        axes[0].set_xlabel("Distance Improvement (%)")
-        axes[0].set_ylabel("Number of Directional Charts")
-        axes[0].grid(axis="y", linestyle="--", alpha=0.5)
+    pairs = metrics["paired"]
+    left = np.zeros(2)
+    for key, label, color in [("ga_wins", "GA wins", "#248c5a"), ("ties", "Tie", "#64748b"),
+                              ("ga_losses", "Local search wins", "#e47c27")]:
+        values = np.array([pairs["objective"][key], pairs["distance"][key]])
+        bars = axes[1, 0].barh(["Objective", "Distance"], values, left=left, color=color, label=label)
+        axes[1, 0].bar_label(bars, [str(v) if v else "" for v in values], label_type="center", color="white")
+        left += values
+    axes[1, 0].set(title="Paired GA versus local search", xlabel="Processed charts")
+    axes[1, 0].legend(loc="lower center", bbox_to_anchor=(.5, -.45), ncols=3)
 
-        # Panel 2: Distance Reduction vs. Disruption Scatter Plot
-        scatter = axes[1].scatter(cdf["imp_pct"], cdf["disruption"], color="#2ca02c", edgecolors="black", s=45, alpha=0.85)
-        axes[1].set_title("Distance Reduction vs. Disruption", fontsize=11, fontweight="bold")
-        axes[1].set_xlabel("Distance Improvement (%)")
-        axes[1].set_ylabel("Demand-Weighted Disruption")
-        axes[1].grid(True, linestyle="--", alpha=0.5)
-
-        # Panel 3: Top Improved Charts Bar Comparison
-        top_improved = cdf[cdf["imp_pct"] > 0].nlargest(5, "imp_pct")
-        if not top_improved.empty:
-            tx = np.arange(len(top_improved))
-            twidth = 0.25
-            axes[2].bar(tx - twidth, top_improved["b_dist"], width=twidth, label="Baseline", color="#7f7f7f")
-            axes[2].bar(tx, top_improved["ls_dist"], width=twidth, label="Local Search", color="#ff7f0e")
-            axes[2].bar(tx + twidth, top_improved["ga_dist"], width=twidth, label="GA Best", color="#2ca02c")
-            axes[2].set_title("Top 5 Improved Routes (km)", fontsize=11, fontweight="bold")
-            axes[2].set_xticks(tx)
-            axes[2].set_xticklabels([f"R{r.route} {r.direction}" for _, r in top_improved.iterrows()], rotation=15, ha="right", fontsize=9)
-            axes[2].set_ylabel("Distance (km)")
-            axes[2].grid(axis="y", linestyle="--", alpha=0.5)
-            axes[2].legend(loc="upper right")
-
-    plt.suptitle("CTU Local Bus Route Optimization - Empirical Model Comparison", fontsize=13, fontweight="bold", y=1.02)
-    plt.tight_layout()
-
-    plot_path = output_dir / "comparison.png"
-    plt.savefig(plot_path, dpi=200, bbox_inches="tight")
-    print(f"[Export] Saved comparison plot -> {plot_path}")
-
+    top = list(metrics["ga"]["distance"]["top_charts"])[:6][::-1]
+    if top:
+        ids = [int(chart) for chart in top]
+        for offset, (model, label, color) in enumerate(zip(MODEL_NAMES.values(),
+                      ("Baseline", "Local search", "GA"), ("#4363d8", "#e47c27", "#248c5a"))):
+            rows = df[df.model.eq(model)].set_index("chart_no").loc[ids]
+            axes[1, 1].barh(np.arange(len(ids)) + (offset - 1) * .24, rows.distance_km, height=.24,
+                            label=label, color=color)
+        labels = [f"Ch {i} ? {baseline.at[i, 'route']} {baseline.at[i, 'direction']}" for i in ids]
+        axes[1, 1].set_yticks(range(len(ids)), labels)
+        axes[1, 1].legend()
+    axes[1, 1].set(title="Largest GA distance reductions", xlabel="Road distance (km)")
+    fig.savefig(output_dir / "comparison.png", dpi=180)
     if (output_dir / "figures").exists():
-        plt.savefig(output_dir / "figures" / "comparison.png", dpi=200, bbox_inches="tight")
-    plt.close()
+        fig.savefig(output_dir / "figures" / "comparison.png", dpi=180)
+    plt.close(fig)
+    return metrics
 
-
-# =============================================================================
-# CLI INTERFACE
-# =============================================================================
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -1548,9 +1628,9 @@ def parse_args():
     parser.add_argument("--output-dir", type=str, default="outputs", help="Output directory")
 
     parser.add_argument("--max-snap-m", type=float, default=DEFAULT_MAX_SNAP_M,
-                        help="Flag stop snaps beyond this distance in metres")
+                        help="Maximum alternative snap distance and warning threshold in metres")
     parser.add_argument("--corridor-m", type=float, default=None,
-                        help="Maximum distance of route geometry vertices from the baseline road path")
+                        help="Maximum distance of route geometry segments from the baseline road path")
     parser.add_argument("--verified-headway-minutes", action="store_true",
                         help="Use peak headways after confirming units and a shared directional interval")
 
@@ -1644,9 +1724,6 @@ def main():
         print(f"[{idx}/{len(target_groups)}] Chart {first.chart_no}: {first.route} {first.direction}")
         try:
             stops = extract_stop_occurrences(chart, road_net)
-            far = [f"{s.original_order} ({s.snap_distance_m:.1f} m)" for s in stops if s.snap_exceeds_threshold]
-            if far:
-                print(f"[Snapping] Stops beyond {args.max_snap_m:g} m: {', '.join(far)}")
             chart_results = []
             for prefix, alpha, beta, gamma in profiles:
                 results, _ = optimize_route_chart(
@@ -1663,14 +1740,17 @@ def main():
             all_stops_dict[key] = stops
             baseline, local, ga = chart_results[3:6] if args.sensitivity else chart_results
             record.update(
-                status="improved" if min(ga.objective_value, local.objective_value)
-                < baseline.objective_value - 1e-10 else "unchanged",
-                ga_objective_improved=ga.objective_value < baseline.objective_value - 1e-10,
-                local_search_objective_improved=local.objective_value < baseline.objective_value - 1e-10,
-                ga_distance_improved=ga.distance_km < baseline.distance_km - 1e-9,
-                local_search_distance_improved=local.distance_km < baseline.distance_km - 1e-9,
+                status="processed",
+                objective_outcome="improved" if min(ga.objective_value, local.objective_value)
+                < baseline.objective_value - OBJECTIVE_TOL else "unchanged",
+                nearest_assignment_disconnected=any(s.snap_reassignment_reason for s in stops),
+                reassigned_stop_count=sum(bool(s.snap_reassignment_reason) for s in stops),
+                ga_objective_improved=ga.objective_value < baseline.objective_value - OBJECTIVE_TOL,
+                local_search_objective_improved=local.objective_value < baseline.objective_value - OBJECTIVE_TOL,
+                ga_distance_improved=ga.distance_km < baseline.distance_km - DISTANCE_TOL_KM,
+                local_search_distance_improved=local.distance_km < baseline.distance_km - DISTANCE_TOL_KM,
                 max_snap_distance_m=max(s.snap_distance_m for s in stops),
-                distant_snap_count=len(far),
+                distant_snap_count=sum(s.snap_exceeds_threshold for s in stops),
             )
         except Exception as exc:
             if isinstance(exc, InvalidChart):
@@ -1691,9 +1771,12 @@ def main():
     pd.DataFrame(failures, columns=["chart_no", "route", "direction", "road_network", "status",
                                    "source_lines", "detail"]).to_csv(output_dir / "chart_failures.csv", index=False)
     tally = pd.Series([row["status"] for row in report]).value_counts()
-    print(f"Discovered: {len(report)} | Processed: {int(tally.get('improved', 0) + tally.get('unchanged', 0))}")
-    for status in ("improved", "unchanged", "infeasible", "invalid_data", "runtime_error"):
+    print(f"Discovered: {len(report)} | Processed: {int(tally.get('processed', 0))}")
+    for status in ("processed", "infeasible", "invalid_data", "runtime_error"):
         print(f"{status}: {tally.get(status, 0)}")
+    objective_outcomes = pd.Series([row.get("objective_outcome") for row in report]).value_counts()
+    print(f"Objective outcomes: {objective_outcomes.to_dict()}")
+    print(f"Recovered nearest-snap failures: {sum(row.get('nearest_assignment_disconnected', False) for row in report)}")
     for model in ("ga", "local_search"):
         for metric in ("distance", "objective"):
             key = f"{model}_{metric}_improved"
@@ -1708,7 +1791,16 @@ def main():
     if args.sensitivity:
         plot_evaluations = [replace(r, model=r.model.removeprefix("Balanced_"))
                             for r in all_evaluations if r.model.startswith("Balanced_")]
-    generate_comparison_plot(plot_evaluations, output_dir)
+    summary = generate_comparison_plot(plot_evaluations, output_dir, report)
+    summary["processing"] = {str(key): int(value) for key, value in tally.items()}
+    summary["processing"]["discovered"] = len(report)
+    summary["processing"]["recovered_nearest_assignment"] = sum(
+        bool(row.get("nearest_assignment_disconnected")) for row in report
+    )
+    summary["comparison_tolerances"] = {"distance_km": DISTANCE_TOL_KM, "objective": OBJECTIVE_TOL}
+    (output_dir / "comparison_summary.json").write_text(
+        json.dumps(summary, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
 
     # Generate interactive Folium comparison map
     try:
@@ -1718,7 +1810,8 @@ def main():
         html_path = output_dir / "route_map.html"
         if opt_routes_path.exists():
             stops_df = load_stop_data(opt_routes_path)
-            folium_map = build_comparison_map(stops_df, geojson_path=geojson_path)
+            folium_map = build_comparison_map(stops_df, geojson_path=geojson_path,
+                                             comparison_path=output_dir / "route_comparison.csv")
             folium_map.save(str(html_path))
             print(f"[Export] Saved interactive map -> {html_path}")
             if (output_dir / "maps").exists():

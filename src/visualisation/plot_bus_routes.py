@@ -1,31 +1,14 @@
-"""
-src/visualisation/plot_bus_routes.py
-
-Interactive Folium map for CTU bus route optimization.
-Visualizes:
-  1. Actual road-network trajectories (from GeoJSON) for:
-     - Approach A: Reconstructed original-sequence road baseline
-     - Approach B: Constrained Local Search
-     - Approach C: Constrained Genetic Algorithm (GA)
-  2. Stop occurrences colored and sized by historical demand (Volume / Boardings toggle)
-  3. Detailed popups showing stop ID, name, sequence order, boardings, alightings, and volume
-  4. Dynamic Route Selection: Supports filtering to individual routes/charts via CLI
-     or exploring individual routes cleanly via LayerControls without map clutter.
-
-Usage:
-  python -m src.visualisation.plot_bus_routes
-  python -m src.visualisation.plot_bus_routes --route 3 --direction UP
-  python -m src.visualisation.plot_bus_routes --chart 1 --out outputs/route_3_map.html
-"""
+"""Build a Folium comparison of reconstructed and optimized CTU service charts."""
 
 import argparse
 import json
+from html import escape
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional
 
 import folium
 import pandas as pd
-from branca.colormap import LinearColormap
+from branca.element import MacroElement, Template
 
 MODEL_STYLES = {
     "Reconstructed_Baseline": {
@@ -51,18 +34,6 @@ MODEL_STYLES = {
     },
 }
 
-DEFAULT_MODEL_STYLE = {
-    "label": "Optimized Route",
-    "color": "#911eb4",
-    "weight": 4,
-    "opacity": 0.8,
-    "dash_array": None,
-}
-
-VOL_COLORS = ["#2c7bb6", "#ffffbf", "#d7191c"]   # blue -> yellow -> red
-BRD_COLORS = ["#ffffb2", "#fd8d3c", "#800026"]   # pale yellow -> orange -> dark red
-
-
 def load_stop_data(
     csv_path: Path,
     route_filter: Optional[str] = None,
@@ -70,7 +41,7 @@ def load_stop_data(
     chart_filter: Optional[int] = None,
 ) -> pd.DataFrame:
     """Load stop sequence data from either original CSV or optimized_routes.csv with optional filtering."""
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, dtype={"route": str, "ctu_stop_id": str})
     df.columns = [c.strip() for c in df.columns]
 
     if "optimized_stop_order" in df.columns:
@@ -102,166 +73,136 @@ def load_stop_data(
     return df
 
 
-def fmt(v):
-    return "n/a" if pd.isna(v) else f"{v:,.0f}"
+METRICS = {
+    "Distance (km)": "km", "Estimated Travel Time (min)": "min",
+    "Objective Value": "Objective", "Distance Improvement (%)": "Dist. %",
+    "Objective Improvement (%)": "Obj. %", "Demand-Weighted Disruption": "Disruption",
+    "Shortcut Penalty": "Shortcut", "Routing Status": "Status",
+}
 
 
-def make_scale(series: pd.Series, colors, vmax_override=None):
-    vals = series.dropna()
-    vmin = float(vals.min()) if len(vals) else 0.0
-    vmax = float(vmax_override) if vmax_override else (float(vals.max()) if len(vals) else 1.0)
-    if vmax <= vmin:
-        vmax = vmin + 1
-    return LinearColormap(colors, vmin=vmin, vmax=vmax), vmin, vmax
+def display(value, decimals=2):
+    if pd.isna(value):
+        return "\u2014"
+    return f"{value:.{decimals}f}" if isinstance(value, (float, int)) else str(value)
 
 
-def color_of(cmap, val, fallback="#999999"):
-    return fallback if pd.isna(val) else cmap(val)
-
-
-def size_of(val, vmin, vmax, lo=22, hi=40):
-    if pd.isna(val):
-        return lo
-    t = min(max((val - vmin) / (vmax - vmin), 0), 1)
-    return int(lo + (hi - lo) * t)
-
-
-def stop_icon(number, vol_col, brd_col, size) -> folium.DivIcon:
-    html = f"""
-    <div class="stopdot" style="--vol:{vol_col};--brd:{brd_col};
-         width:{size}px;height:{size}px;line-height:{size - 4}px;">{number}</div>"""
-    return folium.DivIcon(html=html, icon_size=(size, size), icon_anchor=(size // 2, size // 2))
-
-
-def popup_html(row) -> str:
-    orig_order_str = ""
-    if hasattr(row, "original_stop_order") and pd.notna(row.original_stop_order):
-        orig_order_str = f"Original stop order: {int(row.original_stop_order)}<br>"
-
-    model_str = ""
-    if hasattr(row, "model") and pd.notna(row.model):
-        model_str = f"Model: {row.model}<br>"
-
-    c_no_str = f"Chart #{int(row.chart_no)}<br>" if hasattr(row, "chart_no") and pd.notna(row.chart_no) else ""
-
-    snap = getattr(row, "snap_distance_m", None)
-    snap_str = ""
-    if pd.notna(snap):
-        flag = " (above threshold)" if getattr(row, "snap_exceeds_threshold", False) else ""
-        snap_str = f"Road snap: {float(snap):.1f} m{flag}<br>"
-
-    return f"""
-    <div style="font-size:13px;min-width:210px;font-family:Arial,sans-serif">
-      <b style="color:#111;font-size:14px">{row.ctu_stop_name}</b><br>
-      <span style="color:#555">Stop ID: {row.ctu_stop_id}</span><br>
-      {c_no_str}
-      Route: {row.route} ({row.direction})<br>
-      {model_str}
-      Stop order: {int(row.stop_order)}<br>
-      {orig_order_str}
-      {snap_str}
-      <hr style="margin:6px 0;border:none;border-top:1px solid #ddd">
-      <b>Historical Sample Demand:</b><br>
-      Boardings: <b>{fmt(row.Boardings)}</b><br>
-      Alightings: <b>{fmt(row.Alightings)}</b><br>
-      Volume (chart section load): <b>{fmt(row.Volume)}</b>
-    </div>"""
-
-
-def gradient_css(colors):
-    return "linear-gradient(to right, " + ", ".join(colors) + ")"
-
-
-def add_toggle_ui(m, vol_range, brd_range, capacity, chart_options: Optional[List[Tuple[int, str]]] = None):
-    vol_note = f" (red &ge; {capacity:g})" if capacity else ""
-
-    dropdown_html = ""
-    if chart_options and len(chart_options) > 1:
-        opts = "\n".join([f'<option value="{c_no}">{label}</option>' for c_no, label in chart_options])
-        dropdown_html = f"""
-        <div style="margin-bottom:10px;">
-          <b>Select Route / Chart:</b><br>
-          <select id="route-picker" style="width:100%;padding:4px;margin-top:4px;font-size:12px;" onchange="handleRouteSelect(this.value)">
-            {opts}
-          </select>
-        </div>
-        """
-
-    html = f"""
+def add_comparison_controls(map_, charts, metadata, initial):
+    panel = MacroElement()
+    panel._name = "CTUComparison"
+    panel.charts = json.dumps(metadata).replace("<", chr(92) + "u003c")
+    panel.layers = "{" + ",".join(
+        f'{chart}: [{",".join(layer.get_name() for layer in layers)}]' for chart, layers in charts.items()
+    ) + "}"
+    panel.initial = initial
+    panel._template = Template("""
+    {% macro html(this, kwargs) %}
     <style>
-      .stopdot {{
-        border:2px solid white; border-radius:50%; color:#111; text-align:center;
-        font-size:11px; font-weight:bold; box-shadow:0 0 3px rgba(0,0,0,.7);
-        box-sizing:border-box;
-      }}
-      body.mode-vol .stopdot {{ background: var(--vol) !important; }}
-      body.mode-brd .stopdot {{ background: var(--brd) !important; }}
-      #modebox {{
-        position:fixed; bottom:24px; left:12px; z-index:9999; background:white;
-        padding:12px 14px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.35);
-        font-family:Arial,sans-serif; font-size:13px; width:280px; line-height:1.4;
-        max-height:85vh; overflow-y:auto;
-      }}
-      #modebox button {{
-        padding:6px 12px; margin-right:6px; border:1px solid #777; border-radius:4px;
-        background:#f0f0f0; cursor:pointer; font-size:12px; font-weight:bold;
-      }}
-      body.mode-vol #btn-vol, body.mode-brd #btn-brd {{ background:#1a237e; color:white; border-color:#1a237e; }}
-      .grad {{ height:12px; border-radius:3px; margin:6px 0 2px; }}
-      .lbls {{ display:flex; justify-content:space-between; font-size:11px; }}
-      body.mode-vol #leg-brd, body.mode-brd #leg-vol {{ display:none; }}
-      .legend-box {{ margin-top:10px; border-top:1px solid #eee; padding-top:8px; font-size:12px; }}
-      .legend-item {{ display:flex; align-items:center; margin-bottom:4px; }}
-      .legend-color {{ width:22px; height:6px; margin-right:8px; border-radius:2px; display:inline-block; }}
+    #ctu-panel {position:fixed; top:12px; right:12px; z-index:1000; background:#fff;
+      padding:12px; border-radius:8px; box-shadow:0 2px 10px #0004;
+      width:min(590px,88vw); max-height:48vh; overflow:auto; font:13px system-ui;}
+    #ctu-panel fieldset {border:0; padding:5px 0; margin:4px 0;}
+    #ctu-panel label {margin-right:8px; display:inline-block;}
+    #ctu-panel select {margin-left:4px;}
+    #ctu-metrics {width:100%; border-collapse:collapse; font-size:12px;}
+    #ctu-metrics th, #ctu-metrics td {border-bottom:1px solid #ddd; padding:4px; text-align:right;}
+    #ctu-metrics th:first-child, #ctu-metrics td:first-child {text-align:left;}
     </style>
-    <div id="modebox">
-      {dropdown_html}
-      <b>Color Stops By</b><br><br>
-      <button id="btn-vol" onclick="setMode('vol')">Volume</button>
-      <button id="btn-brd" onclick="setMode('brd')">Boardings</button>
-      <div id="leg-vol" style="margin-top:10px">
-        Volume{vol_note}
-        <div class="grad" style="background:{gradient_css(VOL_COLORS)}"></div>
-        <div class="lbls"><span>{vol_range[0]:,.0f} (low)</span><span>{vol_range[1]:,.0f} (overcrowded)</span></div>
-      </div>
-      <div id="leg-brd" style="margin-top:10px">
-        Boardings
-        <div class="grad" style="background:{gradient_css(BRD_COLORS)}"></div>
-        <div class="lbls"><span>{brd_range[0]:,.0f} (few)</span><span>{brd_range[1]:,.0f} (highest)</span></div>
-      </div>
-      <div style="margin-top:6px;font-size:11px;color:#555">Bigger circle = higher demand</div>
-      <div class="legend-box">
-        <b>Road Alignments:</b><br>
-        <div class="legend-item"><span class="legend-color" style="background:#4363d8;border-top:2px dashed #4363d8;height:0;"></span>Baseline (reconstructed)</div>
-        <div class="legend-item"><span class="legend-color" style="background:#f58231;"></span>Local Search</div>
-        <div class="legend-item"><span class="legend-color" style="background:#3cb44b;height:8px;"></span>Constrained GA (Best)</div>
-      </div>
-    </div>
-    <script>
-      function setMode(m) {{
-        document.body.classList.remove('mode-vol', 'mode-brd');
-        document.body.classList.add('mode-' + m);
-      }}
-      setMode('vol');
+    <section id="ctu-panel" aria-label="CTU chart comparison">
+      <fieldset>
+        <label>Route<select id="ctu-route"></select></label>
+        <label>Direction<select id="ctu-direction"></select></label>
+        <label>Chart<select id="ctu-chart"></select></label>
+      </fieldset>
+      <fieldset>
+        <label style="color:#2442ad"><input type="checkbox" data-model="0" checked>Dashed baseline</label>
+        <label style="color:#a24400"><input type="checkbox" data-model="1" checked>Local search</label>
+        <label style="color:#18732a"><input type="checkbox" data-model="2" checked>Genetic algorithm</label>
+      </fieldset>
+      <table id="ctu-metrics"></table>
+      <small>Times are estimated. S/E mark terminals. Stop popups list historical counts and model orders.</small>
+    </section>
+    {% endmacro %}
+    {% macro script(this, kwargs) %}
+    (() => {
+      const map = {{ this._parent.get_name() }};
+      const metadata = {{ this.charts | safe }};
+      const layers = {{ this.layers | safe }};
+      const route = document.getElementById('ctu-route');
+      const direction = document.getElementById('ctu-direction');
+      const chart = document.getElementById('ctu-chart');
+      const toggles = [...document.querySelectorAll('#ctu-panel input[data-model]')];
+      const metrics = document.getElementById('ctu-metrics');
+      const numbers = Object.keys(metadata);
+      let active;
+      function options(select, values, desired) {
+        select.replaceChildren(...values.map(value => new Option(value, value)));
+        if (values.includes(desired)) select.value = desired;
+      }
+      function render(refit) {
+        const next = chart.value;
+        if (active !== next && active) layers[active].forEach(layer => map.removeLayer(layer));
+        active = next;
+        const [baseline, local, ga, stops] = layers[active];
+        [baseline, local, ga].forEach((layer, i) => {
+          if (map.hasLayer(layer)) map.removeLayer(layer);
+          if (toggles[i].checked) layer.addTo(map);
+        });
+        if (!map.hasLayer(stops)) stops.addTo(map);
+        const bounds = L.latLngBounds([]);
+        layers[active].forEach(layer => bounds.extend(layer.getBounds()));
+        if (refit && bounds.isValid()) map.fitBounds(bounds, {padding: [24, 24], maxZoom: 16});
+        metrics.replaceChildren();
+        for (const [i, row] of metadata[active].metrics.entries()) {
+          const tr = metrics.insertRow();
+          row.forEach(value => {
+            const cell = document.createElement(i === 0 ? 'th' : 'td');
+            cell.textContent = value;
+            tr.append(cell);
+          });
+        }
+      }
+      function setCharts(desired) {
+        options(chart, numbers.filter(n => metadata[n].route === route.value
+                                         && metadata[n].direction === direction.value), desired);
+        render(true);
+      }
+      function setDirections(desiredDirection, desiredChart) {
+        options(direction, [...new Set(numbers.filter(n => metadata[n].route === route.value)
+            .map(n => metadata[n].direction))], desiredDirection);
+        setCharts(desiredChart);
+      }
+      const initial = String({{ this.initial }});
+      options(route, [...new Set(numbers.map(n => metadata[n].route))], metadata[initial].route);
+      route.addEventListener('change', () => setDirections(direction.value));
+      direction.addEventListener('change', () => setCharts());
+      chart.addEventListener('change', () => render(true));
+      toggles.forEach(toggle => toggle.addEventListener('change', () => render(false)));
+      setDirections(metadata[initial].direction, initial);
+    })();
+    {% endmacro %}
+    """)
+    panel.add_to(map_)
 
-      function handleRouteSelect(c_no) {{
-        // Find Leaflet layer control inputs and toggle them
-        var inputs = document.querySelectorAll('.leaflet-control-layers-selector');
-        inputs.forEach(function(inp) {{
-          var span = inp.nextElementSibling;
-          if (span) {{
-            var txt = span.textContent;
-            var isMatch = txt.indexOf('Ch ' + c_no + ':') !== -1 || txt.indexOf('Chart ' + c_no + ':') !== -1;
-            if (isMatch && !inp.checked) {{
-              inp.click();
-            }} else if (!isMatch && inp.checked && txt.indexOf('Ch ') !== -1) {{
-              inp.click();
-            }}
-          }}
-        }});
-      }}
-    </script>"""
-    m.get_root().html.add_child(folium.Element(html))
+
+def stop_popup(rows, terminal_order):
+    items = []
+    for original, occurrences in rows.groupby("original_stop_order", sort=True):
+        row = occurrences.iloc[0]
+        label = "Start" if original == terminal_order[0] else "End" if original == terminal_order[1] else "Stop"
+        name = escape(str(row.ctu_stop_name))
+        stop_id = escape(str(row.ctu_stop_id)) if pd.notna(row.ctu_stop_id) else "\u2014"
+        orders = []
+        for item in occurrences.itertuples():
+            model = MODEL_STYLES.get(item.model, {}).get("label", "Historical")
+            changed = " (moved)" if item.stop_order != original else ""
+            orders.append(f"{model} #{item.stop_order}{changed}")
+        items.append(
+            f"<b>{label} #{original} | {name}</b> ({stop_id})<br>"
+            f"{row.latitude:.6f}, {row.longitude:.6f}<br>{' | '.join(orders)}<br>"
+            f"Historical boardings {display(row.Boardings, 0)} | alightings {display(row.Alightings, 0)}"
+        )
+    return "<hr>".join(items)
 
 
 def build_comparison_map(
@@ -269,116 +210,72 @@ def build_comparison_map(
     geojson_path: Optional[Path] = None,
     capacity: Optional[float] = None,
     default_chart_no: Optional[int] = None,
+    comparison_path: Optional[Path] = None,
 ) -> folium.Map:
-    """
-    Build Folium map integrating actual road geometries from GeoJSON
-    with demand-styled stop markers. Prevents visual clutter by organizing
-    features by chart and enabling only the primary/default chart on initial render.
-    """
-    center_lat = float(stops_df["latitude"].mean()) if not stops_df.empty else 30.7333
-    center_lon = float(stops_df["longitude"].mean()) if not stops_df.empty else 76.7794
-
-    m = folium.Map(
-        location=[center_lat, center_lon],
-        zoom_start=12,
-        tiles="OpenStreetMap",
-        control_scale=True,
-    )
-
-    vol_cmap, vol_min, vol_max = make_scale(stops_df["Volume"], VOL_COLORS, capacity)
-    brd_cmap, brd_min, brd_max = make_scale(stops_df["Boardings"], BRD_COLORS)
-
-    # 1. Index GeoJSON paths by chart_no
-    geojson_by_chart: Dict[int, List[Dict[str, Any]]] = {}
+    """Show one chart at a time, with three independently controllable road layers."""
+    if stops_df.empty:
+        raise ValueError("No stop records match the selected filters")
+    m = folium.Map(location=[stops_df.latitude.mean(), stops_df.longitude.mean()],
+                   zoom_start=12, control_scale=True)
+    stops_df = stops_df.copy()
+    if "original_stop_order" not in stops_df:
+        stops_df["original_stop_order"] = stops_df["stop_order"]
+    if "model" not in stops_df:
+        stops_df["model"] = "Historical"
+    groups = stops_df.groupby("chart_no")
+    path_groups = {}
     if geojson_path and geojson_path.exists():
-        with open(geojson_path, "r", encoding="utf-8") as f:
-            geojson_data = json.load(f)
-        for feat in geojson_data.get("features", []):
-            c_no = int(feat.get("properties", {}).get("chart_no", 0))
-            geojson_by_chart.setdefault(c_no, []).append(feat)
+        for feature in json.loads(geojson_path.read_text(encoding="utf-8"))["features"]:
+            props = feature["properties"]
+            path_groups[props["chart_no"], props["model"]] = feature["geometry"]["coordinates"]
+    comparison = {}
+    if comparison_path and comparison_path.exists():
+        values = pd.read_csv(comparison_path)
+        comparison = values.set_index(["Chart Number", "Model"]).to_dict("index")
 
-    # 2. Identify available charts
-    available_charts = sorted(list(set(stops_df["chart_no"].unique()) | set(geojson_by_chart.keys())))
-    if not available_charts:
-        available_charts = [1]
-
-    # Select initial active chart (Route 3 UP / Chart 1 if present, else first chart)
-    initial_chart = default_chart_no if default_chart_no in available_charts else (1 if 1 in available_charts else available_charts[0])
-
-    chart_options: List[Tuple[int, str]] = []
-
-    # 3. Build FeatureGroups per chart to eliminate map clutter
-    for idx, c_no in enumerate(available_charts):
-        # Find route label
-        sub_stops = stops_df[stops_df["chart_no"] == c_no]
-        if not sub_stops.empty:
-            r_name = str(sub_stops["route"].iloc[0])
-            r_dir = str(sub_stops["direction"].iloc[0])
-        else:
-            r_name = f"R{c_no}"
-            r_dir = ""
-
-        chart_label = f"Ch {c_no}: Route {r_name} {r_dir}"
-        chart_options.append((c_no, chart_label))
-
-        is_active_initial = (c_no == initial_chart)
-
-        # Parent feature group for this chart
-        fg_chart = folium.FeatureGroup(name=chart_label, show=is_active_initial)
-
-        # Add road paths for this chart
-        feats = geojson_by_chart.get(c_no, [])
-        for feat in feats:
-            props = feat.get("properties", {})
-            m_key = props.get("model", "")
-            d_km = props.get("distance_km", 0.0)
-            t_min = props.get("estimated_travel_time_min", 0.0)
-            disp = props.get("demand_weighted_disruption", 0.0)
-
-            key = next((model for model in MODEL_STYLES if m_key.endswith(model)), m_key)
-            style = MODEL_STYLES.get(key, DEFAULT_MODEL_STYLE)
-            network = props.get("road_network", "")
-            source = f" | {network}" if network else ""
-            raw_coords = feat.get("geometry", {}).get("coordinates", [])
-            lat_lon_coords = [[pt[1], pt[0]] for pt in raw_coords]
-
-            if lat_lon_coords:
-                folium.PolyLine(
-                    locations=lat_lon_coords,
-                    color=style["color"],
-                    weight=style["weight"],
-                    opacity=style["opacity"],
-                    dash_array=style["dash_array"],
-                    tooltip=(f"{style['label']} | Route {r_name} {r_dir} (Ch {c_no}) | "
-                             f"Dist: {d_km:.2f} km | Time: {t_min:.1f} min | Disruption: {disp:.2f}{source}"),
-                ).add_to(fg_chart)
-
-        # Add stops for this chart (use GA_Best or single stop sequence to prevent duplicate icons)
-        if "model" in sub_stops.columns:
-            plot_stops = sub_stops[sub_stops["model"].isin(["Constrained_GA_Best", "Balanced_Constrained_GA_Best"])]
-            if plot_stops.empty:
-                plot_stops = sub_stops[sub_stops["model"] == "Reconstructed_Baseline"]
-        else:
-            plot_stops = sub_stops
-
-        for row in plot_stops.itertuples():
-            vcol = color_of(vol_cmap, row.Volume)
-            bcol = color_of(brd_cmap, row.Boardings)
-            size = max(size_of(row.Volume, vol_min, vol_max),
-                       size_of(row.Boardings, brd_min, brd_max))
-
-            folium.Marker(
-                [row.latitude, row.longitude],
-                icon=stop_icon(int(row.stop_order), vcol, bcol, size),
-                popup=folium.Popup(popup_html(row), max_width=300),
-                tooltip=(f"{int(row.stop_order)}. {row.ctu_stop_name} | "
-                         f"Vol: {fmt(row.Volume)} | Board: {fmt(row.Boardings)} | Alight: {fmt(row.Alightings)}"),
-            ).add_to(fg_chart)
-
-        fg_chart.add_to(m)
-
-    add_toggle_ui(m, (vol_min, vol_max), (brd_min, brd_max), capacity, chart_options)
-    folium.LayerControl(collapsed=True).add_to(m)
+    charts, metadata = {}, {}
+    for chart_no, stops in groups:
+        chart_no = int(chart_no)
+        layers = []
+        metrics = [["Model", *METRICS.values()]]
+        prefix = "Balanced_" if stops["model"].str.startswith("Balanced_").any() else ""
+        stops = stops[stops["model"].str.startswith(prefix)] if prefix else stops
+        stops = stops.assign(model=stops["model"].str.removeprefix(prefix))
+        for (model, style), weight in zip(MODEL_STYLES.items(), (11, 7, 3)):
+            layer = folium.FeatureGroup(show=False, control=False).add_to(m)
+            layers.append(layer)
+            coords = path_groups.get((chart_no, prefix + model), [])
+            if len(coords) >= 2:
+                folium.PolyLine([(lat, lon) for lon, lat in coords], color=style["color"],
+                                weight=weight, opacity=0.9, dash_array=style["dash_array"],
+                                tooltip=style["label"], smooth_factor=0).add_to(layer)
+            row = comparison.get((chart_no, prefix + model), {})
+            metrics.append([style["label"], *[display(row.get(column), 4 if "Objective" in column else 2)
+                                              for column in METRICS]])
+        markers = folium.FeatureGroup(show=False, control=False).add_to(m)
+        layers.append(markers)
+        terminal_order = (stops.original_stop_order.min(), stops.original_stop_order.max())
+        for (lat, lon), colocated in stops.groupby(["latitude", "longitude"]):
+            orders = set(colocated.original_stop_order)
+            terminal = ("S" if terminal_order[0] in orders else "") + ("E" if terminal_order[1] in orders else "")
+            text = terminal or str(min(orders))
+            if len(orders) > 1:
+                text += f"+{len(orders)-1}"
+            moved = (colocated.stop_order != colocated.original_stop_order).any()
+            color = "#623297" if terminal else "#a34b00" if moved else "#28475e"
+            icon = folium.DivIcon(html=f'<div class="stopdot" style="background:{color};color:white;'
+                                      f'border:2px solid white;border-radius:50%;width:24px;line-height:23px;'
+                                      f'text-align:center;font-size:11px">{text}</div>',
+                                  icon_size=(28, 28), icon_anchor=(14, 14))
+            names = ", ".join(str(name) for name in colocated.ctu_stop_name.unique())
+            folium.Marker((lat, lon), icon=icon, tooltip=escape(names),
+                          popup=folium.Popup(stop_popup(colocated, terminal_order), max_width=420)).add_to(markers)
+        first = stops.iloc[0]
+        charts[chart_no] = layers
+        metadata[chart_no] = {"route": str(first.route), "direction": str(first.direction),
+                              "metrics": metrics}
+    initial = default_chart_no if default_chart_no in charts else next(iter(charts))
+    add_comparison_controls(m, charts, metadata, initial)
     return m
 
 
@@ -397,7 +294,7 @@ def main():
     parser.add_argument("--chart", type=int, default=None,
                         help="Filter map to a specific chart number (e.g., 1)")
     parser.add_argument("--capacity", type=float, default=None,
-                        help="Volume at which a stop is deemed overcrowded (default: max volume)")
+                        help="Legacy option retained for CLI compatibility")
     args = parser.parse_args()
 
     project_root = Path.cwd()
@@ -432,6 +329,7 @@ def main():
         geojson_path=geojson_to_use,
         capacity=args.capacity,
         default_chart_no=args.chart,
+        comparison_path=csv_path.with_name("route_comparison.csv"),
     )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     m.save(str(out_path))

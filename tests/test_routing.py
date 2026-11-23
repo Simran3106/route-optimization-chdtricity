@@ -18,6 +18,8 @@ from src.routing.routing import (
     apply_fleet_scenarios,
     calculate_demand_disruption,
     check_shortcut_stops,
+    disconnected_legs,
+    repair_stop_snaps,
     discover_charts,
     export_results_to_files,
     generate_comparison_plot,
@@ -240,7 +242,11 @@ def test_suite():
         assert "snap_exceeds_threshold" in stops_df
         html = output / "route_map.html"
         build_comparison_map(stops_df, geojson_path=geojson).save(str(html))
-        assert "leaflet" in html.read_text(encoding="utf-8").lower()
+        payload = html.read_text(encoding="utf-8")
+        assert "leaflet" in payload.lower()
+        assert all(f'id="ctu-{name}"' in payload for name in ("route", "direction", "chart"))
+        assert payload.count("data-model=") == 3
+        assert "map.removeLayer(layer)" in payload
         assert (output / "comparison.png").stat().st_size > 0
 
     # 22. Original CSV and GraphML immutability checks
@@ -266,6 +272,16 @@ def test_tricity():
         net.raw_graph, first, second, weight="length_m"
     ))
     assert net.raw_graph.number_of_edges() > 130_000
+    passenger = load_passenger_data(Path("data/passengerdata/chart_data/join_alightingsboardings_with_standard routes.CSV"))
+    for chart, failing in ((1, "1429434268"), (5, "1432256469")):
+        stops = extract_stop_occurrences(passenger[passenger.chart_no == chart], net)
+        assert any(stops[i].osm_node == failing for i, _ in disconnected_legs(stops, net))
+        before = [(s.original_order, s.ctu_stop_id, s.latitude, s.longitude) for s in stops]
+        repair_stop_snaps(stops, net)
+        assert not disconnected_legs(stops, net)
+        assert [(s.original_order, s.ctu_stop_id, s.latitude, s.longitude) for s in stops] == before
+        assert any(s.original_osm_node == failing and s.osm_node != failing
+                   and s.snap_distance_m <= net.max_snap_m and s.snap_reassignment_reason for s in stops)
     assert get_file_md5(DEFAULT_GRAPHML) == digest
 
 
@@ -338,7 +354,19 @@ def test_directed_fixture():
             raise AssertionError(f"Invalid weights accepted: {weights}")
 
 
+def test_segment_corridor():
+    # Both chord endpoints lie on the baseline, but its interior cuts across a bend.
+    matrix = object.__new__(RouteCostMatrix)
+    a, b, c = (30.7, 76.7), (30.71, 76.7), (30.71, 76.71)
+    matrix.path_coords_cache = {(0, 1): [a, b], (0, 2): [a, c]}
+    matrix.outside_corridor = set()
+    matrix._check_corridor([a, b, c], 10)
+    assert matrix.outside_corridor == {(0, 2)}
+    assert math.isclose(calculate_objective(0, 0, 0, 0, 0, 2), 0.7)
+
+
 if __name__ == "__main__":
+    test_segment_corridor()
     test_directed_fixture()
     test_tricity()
     test_suite()
