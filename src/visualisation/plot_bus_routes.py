@@ -144,6 +144,12 @@ def popup_html(row) -> str:
 
     c_no_str = f"Chart #{int(row.chart_no)}<br>" if hasattr(row, "chart_no") and pd.notna(row.chart_no) else ""
 
+    snap = getattr(row, "snap_distance_m", None)
+    snap_str = ""
+    if pd.notna(snap):
+        flag = " (above threshold)" if getattr(row, "snap_exceeds_threshold", False) else ""
+        snap_str = f"Road snap: {float(snap):.1f} m{flag}<br>"
+
     return f"""
     <div style="font-size:13px;min-width:210px;font-family:Arial,sans-serif">
       <b style="color:#111;font-size:14px">{row.ctu_stop_name}</b><br>
@@ -153,6 +159,7 @@ def popup_html(row) -> str:
       {model_str}
       Stop order: {int(row.stop_order)}<br>
       {orig_order_str}
+      {snap_str}
       <hr style="margin:6px 0;border:none;border-top:1px solid #ddd">
       <b>Historical Sample Demand:</b><br>
       Boardings: <b>{fmt(row.Boardings)}</b><br>
@@ -328,7 +335,10 @@ def build_comparison_map(
             t_min = props.get("estimated_travel_time_min", 0.0)
             disp = props.get("demand_weighted_disruption", 0.0)
 
-            style = MODEL_STYLES.get(m_key, DEFAULT_MODEL_STYLE)
+            key = next((model for model in MODEL_STYLES if m_key.endswith(model)), m_key)
+            style = MODEL_STYLES.get(key, DEFAULT_MODEL_STYLE)
+            network = props.get("road_network", "")
+            source = f" | {network}" if network else ""
             raw_coords = feat.get("geometry", {}).get("coordinates", [])
             lat_lon_coords = [[pt[1], pt[0]] for pt in raw_coords]
 
@@ -340,12 +350,12 @@ def build_comparison_map(
                     opacity=style["opacity"],
                     dash_array=style["dash_array"],
                     tooltip=(f"{style['label']} | Route {r_name} {r_dir} (Ch {c_no}) | "
-                             f"Dist: {d_km:.2f} km | Time: {t_min:.1f} min | Disruption: {disp:.2f}"),
+                             f"Dist: {d_km:.2f} km | Time: {t_min:.1f} min | Disruption: {disp:.2f}{source}"),
                 ).add_to(fg_chart)
 
         # Add stops for this chart (use GA_Best or single stop sequence to prevent duplicate icons)
         if "model" in sub_stops.columns:
-            plot_stops = sub_stops[sub_stops["model"] == "Constrained_GA_Best"]
+            plot_stops = sub_stops[sub_stops["model"].isin(["Constrained_GA_Best", "Balanced_Constrained_GA_Best"])]
             if plot_stops.empty:
                 plot_stops = sub_stops[sub_stops["model"] == "Reconstructed_Baseline"]
         else:

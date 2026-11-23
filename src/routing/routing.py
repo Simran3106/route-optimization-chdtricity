@@ -22,15 +22,18 @@ Road network: data/roadnodes/tricity_road_network.graphml
 
 import argparse
 import json
-from functools import lru_cache
 import math
 import random
 import re
 import sys
 import time
-from dataclasses import asdict, dataclass, field
+import traceback
+from collections import OrderedDict
+from dataclasses import asdict, dataclass, field, replace
+from functools import lru_cache
+from heapq import heappop, heappush
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -163,10 +166,26 @@ class RoadNetwork:
             raise ValueError("Road nodes require numeric WGS84 x/y coordinates") from exc
         if not (np.abs(self.node_coords) <= [90, 180]).all():
             raise ValueError("Road node coordinates fall outside WGS84 bounds")
-        self.main_scc = max(nx.strongly_connected_components(graph), key=len)
+        components = list(nx.strongly_connected_components(graph))
+        self.main_scc = max(components, key=len)
+        self.components = nx.condensation(graph, components)
+        self.component_of = self.components.graph["mapping"]
+        self.reachable_components = lru_cache(maxsize=1024)(
+            lambda component: nx.descendants(self.components, component)
+        )
+        self.adjacent_edges = {
+            u: {v: min(edges.values(), key=lambda edge: edge["length_m"]) for v, edges in neighbors.items()}
+            for u, neighbors in graph.adj.items()
+        }
+        self.path_cache = OrderedDict()
         print(f"[RoadNetwork] {graphml_path}: {len(graph)} nodes, {graph.number_of_edges()} "
               f"drivable directed edges, {nx.number_weakly_connected_components(graph)} weak components")
-        self.get_shortest_path = lru_cache(maxsize=8192)(self.get_shortest_path)
+
+    def can_reach(self, source: str, target: str) -> bool:
+        if source not in self.component_of or target not in self.component_of:
+            return False
+        u, v = self.component_of[source], self.component_of[target]
+        return u == v or v in self.reachable_components(u)
 
     def _prepare_edge_attributes(self):
         """Keep usable directed edges and derive travel time from road class."""
@@ -210,17 +229,57 @@ class RoadNetwork:
         Compute shortest path from node u to v on length_m.
         Returns (distance_m, travel_time_sec, node_sequence, list_of_lat_lon_points).
         """
-        if u not in self.raw_graph or v not in self.raw_graph:
-            return math.inf, math.inf, [], []
-        if u == v:
-            lat = float(self.raw_graph.nodes[u]["y"])
-            lon = float(self.raw_graph.nodes[u]["x"])
-            return 0.0, 0.0, [u], [(lat, lon)]
+        return self.get_shortest_paths(u, [v])[v]
 
-        try:
-            path_nodes = nx.shortest_path(self.raw_graph, source=u, target=v, weight="length_m")
-        except (nx.NetworkXNoPath, nx.NodeNotFound):
-            return float("inf"), float("inf"), [], []
+    def get_shortest_paths(self, source, targets):
+        """Run Dijkstra once per source until the uncached reachable targets are settled."""
+        results = {}
+        pending = set()
+        for target in dict.fromkeys(targets):
+            key = source, target
+            if key in self.path_cache:
+                self.path_cache.move_to_end(key)
+                results[target] = self.path_cache[key]
+            elif self.can_reach(source, target):
+                pending.add(target)
+            else:
+                results[target] = math.inf, math.inf, [], []
+
+        if not pending:
+            return results
+        adjacency = self.adjacent_edges
+        distance = {source: 0.0}
+        predecessor = {}
+        queue = [(0.0, source)]
+        while pending:
+            current_distance, node = heappop(queue)
+            if current_distance != distance[node]:
+                continue
+            if node in pending:
+                path = [node]
+                while path[-1] != source:
+                    path.append(predecessor[path[-1]])
+                path.reverse()
+                result = self._describe_path(path)
+                results[node] = result
+                self.path_cache[source, node] = result
+                if len(self.path_cache) > 8192:
+                    self.path_cache.popitem(last=False)
+                pending.remove(node)
+                if not pending:
+                    break
+            for neighbor, edge in adjacency[node].items():
+                candidate = current_distance + edge["length_m"]
+                if candidate < distance.get(neighbor, math.inf):
+                    distance[neighbor] = candidate
+                    predecessor[neighbor] = node
+                    heappush(queue, (candidate, neighbor))
+        return results
+
+    def _describe_path(self, path_nodes):
+        if len(path_nodes) == 1:
+            node = self.raw_graph.nodes[path_nodes[0]]
+            return 0.0, 0.0, path_nodes, [(float(node["y"]), float(node["x"]))]
 
         total_length_m = 0.0
         total_time_sec = 0.0
@@ -229,14 +288,9 @@ class RoadNetwork:
         for i in range(len(path_nodes) - 1):
             n1 = path_nodes[i]
             n2 = path_nodes[i + 1]
-            edge_data_dict = self.raw_graph.get_edge_data(n1, n2)
-            if not edge_data_dict:
-                continue
-            best_key = min(edge_data_dict.keys(), key=lambda k: edge_data_dict[k].get("length_m", 1.0))
-            best_edge = edge_data_dict[best_key]
-
-            total_length_m += best_edge.get("length_m", 0.0)
-            total_time_sec += best_edge.get("time_sec", 0.0)
+            best_edge = self.adjacent_edges[n1][n2]
+            total_length_m += best_edge["length_m"]
+            total_time_sec += best_edge["time_sec"]
 
             p1 = (float(self.raw_graph.nodes[n1]["y"]), float(self.raw_graph.nodes[n1]["x"]))
             p2 = (float(self.raw_graph.nodes[n2]["y"]), float(self.raw_graph.nodes[n2]["x"]))
@@ -404,20 +458,15 @@ class RouteCostMatrix:
                     break
 
     def _precompute(self):
-        for i in range(self.n):
-            self.dist_matrix[i, i] = 0.0
-            self.time_matrix[i, i] = 0.0
-            u = self.stops[i].osm_node
-            for j in range(self.n):
-                if i == j:
-                    continue
-                v = self.stops[j].osm_node
-                if u and v:
-                    dist_m, time_s, nodes, coords = self.road_net.get_shortest_path(u, v)
-                    self.dist_matrix[i, j] = dist_m
-                    self.time_matrix[i, j] = time_s
-                    self.path_nodes_cache[(i, j)] = nodes
-                    self.path_coords_cache[(i, j)] = coords
+        nodes = [stop.osm_node for stop in self.stops]
+        for i, u in enumerate(nodes):
+            paths = self.road_net.get_shortest_paths(u, nodes)
+            for j, v in enumerate(nodes):
+                dist_m, time_s, path_nodes, coords = paths[v]
+                self.dist_matrix[i, j] = dist_m
+                self.time_matrix[i, j] = time_s
+                self.path_nodes_cache[(i, j)] = path_nodes
+                self.path_coords_cache[(i, j)] = coords
 
     def evaluate_sequence(
         self,
@@ -1084,6 +1133,12 @@ def optimize_route_chart(
     print(f"OPTIMIZING ROUTE {route_name} {direction} (Chart {chart_no}) | {len(stops)} stops")
     print(f"=======================================================")
 
+    for first, second in zip(stops, stops[1:]):
+        if not road_net.can_reach(first.osm_node, second.osm_node):
+            raise InfeasibleChart(
+                f"Disconnected directed leg from stop order {first.original_order} ({first.osm_node}) "
+                f"to {second.original_order} ({second.osm_node})"
+            )
     cost_matrix = RouteCostMatrix(stops, road_net, corridor_m)
 
     # 1. Approach A: Baseline
@@ -1213,6 +1268,7 @@ def export_results_to_files(
     evaluations: List[RouteEvaluation],
     all_stops_data: Dict[Tuple[str, str, int], List[StopOccurrence]],
     output_dir: Path,
+    graphml_path: Path = DEFAULT_GRAPHML,
 ):
     """
     Exports:
@@ -1222,14 +1278,22 @@ def export_results_to_files(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    graph_source = str(graphml_path)
+    baselines = {(r.chart_no, r.model.removesuffix("Reconstructed_Baseline")): r
+                 for r in evaluations if r.model.endswith("Reconstructed_Baseline")}
     rows = []
     for r in evaluations:
+        profile = re.sub(r"(Reconstructed_Baseline|Constrained_Local_Search|Constrained_GA_Best)$", "", r.model)
+        baseline = baselines.get((r.chart_no, profile))
         rows.append({
             "Route": r.route,
             "Direction": r.direction,
             "Chart Number": r.chart_no,
             "Model": r.model,
             "Routing Status": r.routing_status,
+            "Road Network": graph_source,
+            "Distance Improvement (%)": improvement_pct(baseline.distance_km, r.distance_km) if baseline else None,
+            "Objective Improvement (%)": improvement_pct(baseline.objective_value, r.objective_value) if baseline else None,
             "Distance (km)": round(r.distance_km, 3) if r.distance_km is not None else None,
             "Estimated Travel Time (min)": round(r.estimated_travel_time_min, 2) if r.estimated_travel_time_min is not None else None,
             "Stops Retained (%)": r.stops_retained_pct,
@@ -1239,8 +1303,12 @@ def export_results_to_files(
             "Historical Maximum Volume": r.historical_max_volume,
             "Historical Daily Ridership": r.historical_daily_ridership,
             "Historical Load Factor": round(r.historical_load_factor, 3) if r.historical_load_factor is not None else None,
-            "Estimated Fleet Requirement": r.estimated_fleet_requirement,
-            "Modeled Operating Cost (Rs)": round(r.modeled_operating_cost_rs, 2) if r.modeled_operating_cost_rs is not None else None,
+            "Historical Route Length (km)": r.historical_route_length_km,
+            "Historical On-Road Fleet": r.historical_on_road_fleet,
+            "Historical Vehicle-km": r.historical_vehicle_km,
+            "Historical Expenditure (Rs)": r.historical_expenditure_rs,
+            "Modeled Round-Trip Fleet Requirement": r.estimated_fleet_requirement,
+            "Modeled Operating Cost per Traversal (Rs)": round(r.modeled_operating_cost_rs, 2) if r.modeled_operating_cost_rs is not None else None,
             "Objective Value": round(r.objective_value, 4),
             "Execution Time (s)": round(r.execution_time_s, 3),
         })
@@ -1267,6 +1335,7 @@ def export_results_to_files(
                 "model": r.model,
                 "optimized_stop_order": new_pos,
                 "original_stop_order": s.original_order,
+                "chart_label": s.chart_label,
                 "ctu_stop_id": s.ctu_stop_id,
                 "ctu_stop_name": s.ctu_stop_name,
                 "latitude": s.latitude,
@@ -1276,6 +1345,8 @@ def export_results_to_files(
                 "Volume": s.volume,
                 "osm_node": s.osm_node,
                 "snap_distance_m": round(s.snap_distance_m, 2),
+                "snap_exceeds_threshold": s.snap_exceeds_threshold,
+                "road_network": graph_source,
             })
     opt_df = pd.DataFrame(seq_rows)
     opt_path = output_dir / "optimized_routes.csv"
@@ -1284,7 +1355,7 @@ def export_results_to_files(
 
     geojson_features = []
     for r in evaluations:
-        if not r.road_coordinates:
+        if len(r.road_coordinates) < 2:
             continue
         coords_lon_lat = [[pt[1], pt[0]] for pt in r.road_coordinates]
         feature = {
@@ -1294,6 +1365,7 @@ def export_results_to_files(
                 "direction": r.direction,
                 "chart_no": r.chart_no,
                 "model": r.model,
+                "road_network": graph_source,
                 "distance_km": round(r.distance_km, 3),
                 "estimated_travel_time_min": round(r.estimated_travel_time_min, 2),
                 "demand_weighted_disruption": round(r.demand_weighted_disruption, 3),
@@ -1309,6 +1381,7 @@ def export_results_to_files(
     geojson_obj = {
         "type": "FeatureCollection",
         "features": geojson_features,
+        "road_network": graph_source,
     }
     geojson_path = output_dir / "optimized_paths.geojson"
     with open(geojson_path, "w", encoding="utf-8") as f:
@@ -1428,7 +1501,7 @@ def generate_comparison_plot(
         axes[1].grid(True, linestyle="--", alpha=0.5)
 
         # Panel 3: Top Improved Charts Bar Comparison
-        top_improved = cdf.sort_values("imp_pct", ascending=False).head(5)
+        top_improved = cdf[cdf["imp_pct"] > 0].nlargest(5, "imp_pct")
         if not top_improved.empty:
             tx = np.arange(len(top_improved))
             twidth = 0.25
@@ -1447,11 +1520,11 @@ def generate_comparison_plot(
 
     plot_path = output_dir / "comparison.png"
     plt.savefig(plot_path, dpi=200, bbox_inches="tight")
-    plt.close()
     print(f"[Export] Saved comparison plot -> {plot_path}")
 
     if (output_dir / "figures").exists():
         plt.savefig(output_dir / "figures" / "comparison.png", dpi=200, bbox_inches="tight")
+    plt.close()
 
 
 # =============================================================================
@@ -1465,10 +1538,7 @@ def parse_args():
     parser.add_argument("--route", type=str, default=None, help="Route identifier (e.g., '3', '11', '17')")
     parser.add_argument("--direction", type=str, default=None, help="Direction ('UP' or 'DOWN')")
     parser.add_argument("--chart", type=int, default=None, help="Specific chart number to optimize")
-    parser.add_argument("--all", action="store_true", help="Batch optimize representative or all eligible routes")
-    parser.add_argument("--passenger-csv", type=str,
-                        default="data/passengerdata/chart_data/join_alightingsboardings_with_standard routes.CSV",
-                        help="Path to boarding-alighting dataset")
+    parser.add_argument("--all", action="store_true", help="Process every directional chart")
     parser.add_argument("--perf-csv", type=str,
                         default="data/passengerdata/performance_routes_clean.csv",
                         help="Path to performance parameters CSV")
@@ -1476,6 +1546,13 @@ def parse_args():
                         default=str(DEFAULT_GRAPHML),
                         help="Path to road network GraphML")
     parser.add_argument("--output-dir", type=str, default="outputs", help="Output directory")
+
+    parser.add_argument("--max-snap-m", type=float, default=DEFAULT_MAX_SNAP_M,
+                        help="Flag stop snaps beyond this distance in metres")
+    parser.add_argument("--corridor-m", type=float, default=None,
+                        help="Maximum distance of route geometry vertices from the baseline road path")
+    parser.add_argument("--verified-headway-minutes", action="store_true",
+                        help="Use peak headways after confirming units and a shared directional interval")
 
     # GA & Sensitivity parameters
     parser.add_argument("--alpha", type=float, default=0.5, help="Distance weight in objective")
@@ -1490,14 +1567,28 @@ def parse_args():
     parser.add_argument("--sensitivity", action="store_true",
                         help="Run multi-objective weight sensitivity analysis (Distance-focused, Balanced, Demand-focused)")
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    try:
+        validate_weights(args.alpha, args.beta, args.gamma)
+    except ValueError as exc:
+        parser.error(str(exc))
+    if (not math.isfinite(args.max_snap_m) or args.max_snap_m < 0
+            or (args.corridor_m is not None and (not math.isfinite(args.corridor_m) or args.corridor_m < 0))
+            or not math.isfinite(args.max_detour_ratio) or args.max_detour_ratio < 1
+            or args.max_displacement < 0 or args.pop_size < 1 or args.generations < 0):
+        parser.error("Invalid routing constraints or GA configuration")
+    return args
+
+
+def improvement_pct(baseline: float, candidate: float) -> Optional[float]:
+    return 100 * (baseline - candidate) / baseline if baseline > 0 else None
 
 
 def main():
     args = parse_args()
 
     project_root = Path.cwd()
-    passenger_csv = project_root / args.passenger_csv
+    passenger_csv = project_root / "data/passengerdata/chart_data/join_alightingsboardings_with_standard routes.CSV"
     perf_csv = project_root / args.perf_csv
     graphml_path = project_root / args.graphml
     output_dir = project_root / args.output_dir
@@ -1509,7 +1600,7 @@ def main():
 
     df_passenger = load_passenger_data(passenger_csv)
     df_perf = load_performance_data(perf_csv)
-    road_net = RoadNetwork(graphml_path)
+    road_net = RoadNetwork(graphml_path, args.max_snap_m)
 
     if args.chart is not None:
         target_df = df_passenger[df_passenger["chart_no"] == args.chart]
@@ -1523,10 +1614,10 @@ def main():
             matched = matched[matched["direction"].str.upper() == args.direction.strip().upper()]
         if matched.empty:
             sys.exit(f"Error: No records found for Route {args.route} {args.direction or ''}")
-        target_groups = [g for _, g in matched.groupby("chart_no")]
+        target_groups = [g for g in discover_charts(df_passenger) if g.index.isin(matched.index).any()]
     elif args.all:
         # Dynamically discover and process EVERY chart in the primary dataset (all 118 directional charts)
-        target_groups = [g for _, g in df_passenger.groupby("chart_no")]
+        target_groups = discover_charts(df_passenger)
         print(f"\n[Batch Mode] Dynamically discovered {len(target_groups)} directional charts across the CTU bus network.")
     else:
         sub = df_passenger[(df_passenger["route"] == "3") & (df_passenger["direction"] == "UP")]
@@ -1536,142 +1627,88 @@ def main():
     all_evaluations: List[RouteEvaluation] = []
     all_stops_dict: Dict[Tuple[str, str, int], List[StopOccurrence]] = {}
 
+    profiles = [("", args.alpha, args.beta, args.gamma)]
     if args.sensitivity:
-        print("\n=======================================================")
-        print("RUNNING MULTI-OBJECTIVE WEIGHT SENSITIVITY ANALYSIS")
-        print("=======================================================")
         profiles = [
-            ("Distance_Focused", 0.8, 0.1, 0.1),
-            ("Balanced", 0.5, 0.2, 0.3),
-            ("Demand_Preservation_Focused", 0.2, 0.1, 0.7),
+            ("Distance_Focused_", 0.8, 0.1, 0.1),
+            ("Balanced_", 0.5, 0.2, 0.3),
+            ("Demand_Preservation_Focused_", 0.2, 0.1, 0.7),
         ]
-        sens_evaluations: List[RouteEvaluation] = []
-        for chart_sub in target_groups:
-            stops = extract_stop_occurrences(chart_sub, road_net)
-            key = (stops[0].route, stops[0].direction, stops[0].chart_no)
-            all_stops_dict[key] = stops
-            for prof_name, a, b, g in profiles:
-                print(f"\n--- Profile: {prof_name} (alpha={a}, beta={b}, gamma={g}) ---")
-                evals, _ = optimize_route_chart(
-                    chart_df=chart_sub,
-                    road_net=road_net,
-                    df_perf=df_perf,
-                    alpha=a,
-                    beta=b,
-                    gamma=g,
-                    max_displacement=args.max_displacement,
-                    max_detour_ratio=args.max_detour_ratio,
-                    ga_seeds=args.seeds,
-                    pop_size=args.pop_size,
-                    n_generations=args.generations,
-                )
-                for item in evals:
-                    item.model = f"{prof_name}_{item.model}"
-                sens_evaluations.extend(evals)
 
-        export_results_to_files(sens_evaluations, all_stops_dict, output_dir)
-        generate_comparison_plot(sens_evaluations, output_dir)
-        print("\nSensitivity analysis completed successfully.")
-        return
-
-    # Track full execution statistics
-    total_batch_t0 = time.time()
-    n_discovered = len(target_groups)
-    n_processed = 0
-    n_improved = 0
-    n_unchanged = 0
-    n_infeasible = 0
-    route_records = []
-
-    for idx, chart_sub in enumerate(target_groups, start=1):
-        c_num = int(chart_sub["chart_no"].iloc[0])
-        r_name = str(chart_sub["route"].iloc[0])
-        r_dir = str(chart_sub["direction"].iloc[0])
-
-        if n_discovered > 5:
-            print(f"[{idx}/{n_discovered}] Optimizing Chart {c_num}: Route {r_name} {r_dir} ({len(chart_sub)} stops)...")
-
+    report = []
+    failures = []
+    for idx, chart in enumerate(target_groups, start=1):
+        first = chart.iloc[0]
+        record = {"chart_no": first.chart_no, "route": first.route, "direction": first.direction,
+                  "road_network": args.graphml}
+        print(f"[{idx}/{len(target_groups)}] Chart {first.chart_no}: {first.route} {first.direction}")
         try:
-            stops = extract_stop_occurrences(chart_sub, road_net)
+            stops = extract_stop_occurrences(chart, road_net)
+            far = [f"{s.original_order} ({s.snap_distance_m:.1f} m)" for s in stops if s.snap_exceeds_threshold]
+            if far:
+                print(f"[Snapping] Stops beyond {args.max_snap_m:g} m: {', '.join(far)}")
+            chart_results = []
+            for prefix, alpha, beta, gamma in profiles:
+                results, _ = optimize_route_chart(
+                    chart, road_net, df_perf, alpha=alpha, beta=beta, gamma=gamma,
+                    max_displacement=args.max_displacement, max_detour_ratio=args.max_detour_ratio,
+                    ga_seeds=args.seeds, pop_size=args.pop_size, n_generations=args.generations,
+                    corridor_m=args.corridor_m, stops=stops,
+                )
+                for result in results:
+                    result.model = prefix + result.model
+                chart_results.extend(results)
+            all_evaluations.extend(chart_results)
             key = (stops[0].route, stops[0].direction, stops[0].chart_no)
             all_stops_dict[key] = stops
-
-            evals, stats = optimize_route_chart(
-                chart_df=chart_sub,
-                road_net=road_net,
-                df_perf=df_perf,
-                alpha=args.alpha,
-                beta=args.beta,
-                gamma=args.gamma,
-                max_displacement=args.max_displacement,
-                max_detour_ratio=args.max_detour_ratio,
-                ga_seeds=args.seeds,
-                pop_size=args.pop_size,
-                n_generations=args.generations,
+            baseline, local, ga = chart_results[3:6] if args.sensitivity else chart_results
+            record.update(
+                status="improved" if min(ga.objective_value, local.objective_value)
+                < baseline.objective_value - 1e-10 else "unchanged",
+                ga_objective_improved=ga.objective_value < baseline.objective_value - 1e-10,
+                local_search_objective_improved=local.objective_value < baseline.objective_value - 1e-10,
+                ga_distance_improved=ga.distance_km < baseline.distance_km - 1e-9,
+                local_search_distance_improved=local.distance_km < baseline.distance_km - 1e-9,
+                max_snap_distance_m=max(s.snap_distance_m for s in stops),
+                distant_snap_count=len(far),
             )
-            all_evaluations.extend(evals)
-            n_processed += 1
-
-            base_eval = evals[0]
-            ga_eval = evals[-1]
-            base_d = base_eval.distance_km
-            ga_d = ga_eval.distance_km
-            imp_pct = ((base_d - ga_d) / base_d) * 100.0 if base_d > 0 else 0.0
-
-            if imp_pct > 0.05:
-                n_improved += 1
+        except Exception as exc:
+            if isinstance(exc, InvalidChart):
+                status = "invalid_data"
+            elif isinstance(exc, InfeasibleChart):
+                status = "infeasible"
             else:
-                n_unchanged += 1
+                status = "runtime_error"
+            record["status"] = status
+            detail = str(exc) if status != "runtime_error" else traceback.format_exc()
+            failures.append({**record, "source_lines": ",".join(map(str, chart["_source_line"])),
+                             "detail": detail})
+            print(f"[{status}] {exc}")
+        report.append(record)
 
-            route_records.append({
-                "chart_no": c_num,
-                "route": r_name,
-                "direction": r_dir,
-                "stops": len(stops),
-                "baseline_km": base_d,
-                "ga_km": ga_d,
-                "imp_pct": imp_pct,
-                "disruption": ga_eval.demand_weighted_disruption,
-            })
+    output_dir.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(report).to_csv(output_dir / "chart_processing.csv", index=False)
+    pd.DataFrame(failures, columns=["chart_no", "route", "direction", "road_network", "status",
+                                   "source_lines", "detail"]).to_csv(output_dir / "chart_failures.csv", index=False)
+    tally = pd.Series([row["status"] for row in report]).value_counts()
+    print(f"Discovered: {len(report)} | Processed: {int(tally.get('improved', 0) + tally.get('unchanged', 0))}")
+    for status in ("improved", "unchanged", "infeasible", "invalid_data", "runtime_error"):
+        print(f"{status}: {tally.get(status, 0)}")
+    for model in ("ga", "local_search"):
+        for metric in ("distance", "objective"):
+            key = f"{model}_{metric}_improved"
+            print(f"{key}: {sum(row.get(key, False) for row in report)}")
 
-        except Exception as e:
-            n_infeasible += 1
-            print(f"[ERROR] Failed processing Chart {c_num} (Route {r_name} {r_dir}): {e}")
-
-    total_batch_time = time.time() - total_batch_t0
-
-    # Export outputs
-    export_results_to_files(all_evaluations, all_stops_dict, output_dir)
-    generate_comparison_plot(all_evaluations, output_dir)
-
-    # Print comprehensive execution report
-    print("\n=======================================================")
-    print("FULL NETWORK OPTIMIZATION SUMMARY REPORT")
-    print("=======================================================")
-    print(f"Total Charts Discovered  : {n_discovered}")
-    print(f"Processed Successfully   : {n_processed} ({n_processed / max(n_discovered, 1) * 100:.1f}%)")
-    print(f"Routes Improved          : {n_improved} ({n_improved / max(n_processed, 1) * 100:.1f}%)")
-    print(f"Routes Unchanged         : {n_unchanged} ({n_unchanged / max(n_processed, 1) * 100:.1f}%)")
-    print(f"Failed / Infeasible      : {n_infeasible}")
-    print(f"Total Batch Runtime      : {total_batch_time:.2f} s ({total_batch_time / max(n_processed, 1):.3f} s/chart)")
-
-    if route_records:
-        rec_df = pd.DataFrame(route_records)
-        all_mean_imp = rec_df["imp_pct"].mean()
-        improved_only = rec_df[rec_df["imp_pct"] > 0.05]
-        improved_mean_imp = improved_only["imp_pct"].mean() if not improved_only.empty else 0.0
-
-        print(f"Mean Distance Reduction (All {len(rec_df)} Charts)     : {all_mean_imp:.2f}%")
-        print(f"Mean Distance Reduction (Improved Charts Only) : {improved_mean_imp:.2f}%")
-
-        print("\n--- TOP-PERFORMING IMPROVED ROUTES ---")
-        top_df = rec_df.sort_values("imp_pct", ascending=False).head(10)
-        print(top_df[["chart_no", "route", "direction", "stops", "baseline_km", "ga_km", "imp_pct", "disruption"]].to_string(index=False))
-
-    print("\n[Methodological Boundary Notice]")
-    print("Fleet and cost metrics are directional scenario evaluations for individual route services.")
-    print("Do NOT aggregate them into a network-wide total, as directional trips represent sampled observations")
-    print("rather than simultaneous continuous operations.")
+    if not all_evaluations:
+        sys.exit("No feasible charts to export. See chart_failures.csv.")
+    if args.verified_headway_minutes:
+        apply_fleet_scenarios(all_evaluations, all_stops_dict, df_passenger, df_perf)
+    export_results_to_files(all_evaluations, all_stops_dict, output_dir, Path(args.graphml))
+    plot_evaluations = all_evaluations
+    if args.sensitivity:
+        plot_evaluations = [replace(r, model=r.model.removeprefix("Balanced_"))
+                            for r in all_evaluations if r.model.startswith("Balanced_")]
+    generate_comparison_plot(plot_evaluations, output_dir)
 
     # Generate interactive Folium comparison map
     try:
@@ -1687,7 +1724,7 @@ def main():
             if (output_dir / "maps").exists():
                 folium_map.save(str(output_dir / "maps" / "route_map.html"))
     except Exception as e:
-        print(f"[warn] Interactive map generation skipped: {e}")
+        sys.exit(f"Interactive map generation failed: {e}")
 
     print("\nOptimization completed successfully.")
 
